@@ -23,6 +23,27 @@ jobs:
 
         steps:
             - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - name: Generate release notes
+              id: notes
+              shell: bash
+              run: |
+                  LAST_TAG=$(git describe --tags --abbrev=0 --match 'app-v*' 2>/dev/null || echo "")
+                  if [ -z "$LAST_TAG" ]; then
+                    NOTES="Primera actualización automática publicada."
+                  else
+                    NOTES=$(git log "$LAST_TAG"..HEAD --pretty=format:"- %s" -- . ':!.github')
+                    if [ -z "$NOTES" ]; then
+                      NOTES="Cambios menores."
+                    fi
+                  fi
+                  {
+                    echo "notes<<NOTES_EOF"
+                    echo "$NOTES"
+                    echo "NOTES_EOF"
+                  } >> "$GITHUB_OUTPUT"
 
             - name: Setup pnpm
               uses: pnpm/action-setup@v4
@@ -68,7 +89,7 @@ jobs:
               with:
                   tagName: app-v__VERSION__
                   releaseName: 'Habit Tracker v__VERSION__'
-                  releaseBody: 'Actualización automática publicada desde master.'
+                  releaseBody: ${{ steps.notes.outputs.notes }}
                   releaseDraft: false
                   prerelease: false
                   args: ${{ matrix.args }}

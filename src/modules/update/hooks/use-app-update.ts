@@ -15,6 +15,7 @@ const UPDATE_CHECK_INTERVAL_MS = 3 * 60 * 60 * 1000
 export function useAppUpdate() {
     const [available, setAvailable] = useState(false)
     const [version, setVersion] = useState<string | null>(null)
+    const [notes, setNotes] = useState<string | null>(null)
     const [installing, setInstalling] = useState(false)
     const updateRef = useRef<Update | null>(null)
 
@@ -28,6 +29,7 @@ export function useAppUpdate() {
                 updateRef.current = update
                 setAvailable(update !== null)
                 setVersion(update?.version ?? null)
+                setNotes(update?.body ?? null)
             } catch {
                 // sin conexión o falló el chequeo — se reintenta en el próximo tick
             }
@@ -53,5 +55,5 @@ export function useAppUpdate() {
         }
     }
 
-    return { available, version, installing, install }
+    return { available, version, notes, installing, install }
 }
