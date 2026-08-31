@@ -1,8 +1,8 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef } from 'react'
 
-import { checkNivelUp, checkRachaOvertake } from '../lib/friend-activity'
-import { listFriends } from '../services/friends-api.service'
+import { checkNewPendingRequests, checkNivelUp, checkRachaOvertake } from '../lib/friend-activity'
+import { listFriends, listPendingRequests } from '../services/friends-api.service'
 
 import { useToastStore } from '@/core/stores/toast-store'
 import { useSessionStore } from '@/modules/account/store/session-store'
@@ -13,9 +13,9 @@ const WATCH_INTERVAL_MS = 60_000
 
 /**
  * App-level (montado en `App.tsx`, NO depende de que la pestaña Amigos esté abierta) — detecta
- * "tu amigo subió de nivel" / "te superó en racha" comparando el snapshot de cada amigo contra el
- * último visto (`friend-activity.ts`, localStorage). Mismo esqueleto que `use-profile-sync.ts`:
- * corre una vez al montar + cada 60s, silencioso ante cualquier falla.
+ * "tu amigo subió de nivel" / "te superó en racha" / "te llegó una solicitud nueva" comparando
+ * contra lo último visto (`friend-activity.ts`, localStorage). Mismo esqueleto que
+ * `use-profile-sync.ts`: corre una vez al montar + cada 60s, silencioso ante cualquier falla.
  */
 export function useFriendActivityWatcher() {
     const session = useSessionStore(state => state.session)
@@ -57,6 +57,12 @@ export function useFriendActivityWatcher() {
                         )
                         if (rachaMessage) useToastStore.getState().addToast('success', rachaMessage)
                     }
+                }
+
+                const pending = await listPendingRequests()
+                queryClient.setQueryData(['friends', 'pending'], pending)
+                for (const message of checkNewPendingRequests(pending)) {
+                    useToastStore.getState().addToast('success', message)
                 }
             } catch {
                 // sin conexión o el server no responde — se reintenta en el próximo tick

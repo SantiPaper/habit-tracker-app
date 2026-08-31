@@ -1,5 +1,6 @@
 const NIVEL_SEEN_PREFIX = 'friend-nivel-seen:'
 const RACHA_OVERTAKE_PREFIX = 'friend-racha-overtook:'
+const PENDING_REQUESTS_SEEN_KEY = 'friend-requests-seen'
 
 /**
  * Detecta si un amigo subió de nivel desde la última vez que se vio — mismo patrón que
@@ -81,4 +82,44 @@ export function checkRachaOvertake(
     return overtakesNow && stored === '0'
         ? `${username} te superó en racha (${friendRachaMaxima} vs ${myRachaMaxima} semanas)`
         : null
+}
+
+/**
+ * Detecta pedidos de amistad entrantes nuevos desde el último chequeo — guarda en `localStorage`
+ * el set de ids ya vistos (se limpia solo cuando un pedido deja de estar pendiente, sea porque se
+ * aceptó/rechazó). La primera vez que corre (nunca se guardó nada) siembra todo lo ya pendiente en
+ * silencio, para no avisar de golpe pedidos que ya estaban ahí antes de esta feature.
+ */
+export function checkNewPendingRequests(pending: { friendshipId: string; from: { username: string } }[]): string[] {
+    let stored: string | null
+
+    try {
+        stored = localStorage.getItem(PENDING_REQUESTS_SEEN_KEY)
+    } catch {
+        return []
+    }
+
+    const isFirstRun = stored === null
+    const seen = new Set<string>(stored ? (JSON.parse(stored) as string[]) : [])
+    const currentIds = new Set(pending.map(p => p.friendshipId))
+    const messages: string[] = []
+
+    for (const request of pending) {
+        if (!seen.has(request.friendshipId)) {
+            if (!isFirstRun) messages.push(`${request.from.username} te mandó una solicitud de amistad`)
+            seen.add(request.friendshipId)
+        }
+    }
+
+    for (const id of seen) {
+        if (!currentIds.has(id)) seen.delete(id)
+    }
+
+    try {
+        localStorage.setItem(PENDING_REQUESTS_SEEN_KEY, JSON.stringify([...seen]))
+    } catch {
+        /* no-op */
+    }
+
+    return messages
 }
