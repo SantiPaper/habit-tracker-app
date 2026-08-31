@@ -1,4 +1,4 @@
-import type { Selectable, Transaction } from 'kysely'
+import { sql, type Selectable, type Transaction } from 'kysely'
 
 import type { HabitScheduleBlock } from '../types/habit.types'
 
@@ -39,6 +39,15 @@ export async function replaceScheduleBlocksForHabit(
     const runner = trx ?? db
 
     await runner.deleteFrom('habit_schedule_block').where('habit_id', '=', habitId).execute()
+
+    // Los bloques no tienen `updated_at` propio y viajan siempre pegados a su hábito dueño en la
+    // sincronización entre dispositivos — sin tocar esto acá, un cambio de horario no se enteraría
+    // de propagarse (el hábito seguiría con la fecha de su última edición de campos "normales").
+    await runner
+        .updateTable('habit')
+        .set({ updated_at: sql`datetime('now')` })
+        .where('id', '=', habitId)
+        .execute()
 
     if (blocks.length === 0) return []
 

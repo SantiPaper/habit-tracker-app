@@ -1,4 +1,4 @@
-import type { Selectable } from 'kysely'
+import { sql, type Selectable } from 'kysely'
 
 import type { CreateHabitInput } from '../schemas/habit.schema'
 import type { Habit, HabitTipo } from '../types/habit.types'
@@ -95,7 +95,11 @@ export async function updateHabitDetails(habitId: string, changes: UpdateHabitDe
             hora: changes.hora ?? null,
             duracion_minutos: changes.duracionMinutos ?? null,
             color: changes.color ?? null,
-            ...(changes.importancia ? { importancia: changes.importancia } : {})
+            ...(changes.importancia ? { importancia: changes.importancia } : {}),
+            // El default de la columna solo aplica al INSERT — sin esto, `updated_at` quedaba
+            // congelado en la fecha de creación para siempre, sin importar cuántas ediciones
+            // tuviera el hábito después (bug real, encontrado armando la sync entre dispositivos).
+            updated_at: sql`datetime('now')`
         })
         .where('id', '=', habitId)
         .returningAll()
@@ -107,7 +111,11 @@ export async function updateHabitDetails(habitId: string, changes: UpdateHabitDe
 }
 
 export async function retireHabit(habitId: string, fechaFin: string): Promise<void> {
-    await db.updateTable('habit').set({ fecha_fin: fechaFin, activo: 0 }).where('id', '=', habitId).execute()
+    await db
+        .updateTable('habit')
+        .set({ fecha_fin: fechaFin, activo: 0, updated_at: sql`datetime('now')` })
+        .where('id', '=', habitId)
+        .execute()
 }
 
 export async function replaceHabitSchedule(
@@ -116,7 +124,11 @@ export async function replaceHabitSchedule(
     newHabit: CreateHabitInput
 ): Promise<Habit> {
     return db.transaction().execute(async trx => {
-        await trx.updateTable('habit').set({ fecha_fin: fechaFin, activo: 0 }).where('id', '=', oldHabitId).execute()
+        await trx
+            .updateTable('habit')
+            .set({ fecha_fin: fechaFin, activo: 0, updated_at: sql`datetime('now')` })
+            .where('id', '=', oldHabitId)
+            .execute()
 
         const id = crypto.randomUUID()
         const today = toDateKey(new Date())

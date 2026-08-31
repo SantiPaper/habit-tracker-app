@@ -6,6 +6,7 @@ export interface Database {
     setting: SettingTable
     habit_period_claim: HabitPeriodClaimTable
     habit_schedule_block: HabitScheduleBlockTable
+    habit_log_tombstone: HabitLogTombstoneTable
 }
 
 export interface HabitTable {
@@ -54,4 +55,11 @@ export interface HabitScheduleBlockTable {
     dias_semana: string
     hora: string
     duracion_minutos: number | null
+}
+
+export interface HabitLogTombstoneTable {
+    id: string
+    habit_id: string
+    periodo: string
+    deleted_at: ColumnType<string, string | undefined, never>
 }

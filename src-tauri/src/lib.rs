@@ -39,6 +39,12 @@ pub fn run() {
             sql: include_str!("../migrations/0006_add_habit_schedule_blocks.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 7,
+            description: "add habit_log_tombstone table for cross-device sync",
+            sql: include_str!("../migrations/0007_add_sync_tombstones.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()

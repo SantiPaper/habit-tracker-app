@@ -4,10 +4,11 @@ import { ToastContainer } from '@/components/toast-container'
 import { useNavigationStore, type Tab } from '@/core/stores/navigation-store'
 import { useHydrateSession } from '@/modules/account/hooks/use-hydrate-session'
 import { useProfileSync } from '@/modules/account/hooks/use-profile-sync'
-import { useFriendActivityWatcher } from '@/modules/friends/hooks/use-friend-activity-watcher'
 import { XpHud } from '@/modules/gamification/components/xp-hud'
+import { useRealtime } from '@/modules/realtime/hooks/use-realtime'
 import { RemindersBanner } from '@/modules/reminders/components/reminders-banner'
 import { useHabitReminders } from '@/modules/reminders/hooks/use-habit-reminders'
+import { useSyncEngine } from '@/modules/sync/hooks/use-sync-engine'
 import { UpdateBanner } from '@/modules/update/components/update-banner'
 import { AgendaPage } from '@/pages/agenda-page'
 import { FriendsPage } from '@/pages/friends-page'
@@ -145,7 +146,8 @@ function App() {
     useHabitReminders()
     useHydrateSession()
     useProfileSync()
-    useFriendActivityWatcher()
+    useRealtime()
+    useSyncEngine()
 
     return (
         <main className='bg-bg min-h-screen'>
