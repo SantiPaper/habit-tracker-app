@@ -4,6 +4,7 @@ import { ToastContainer } from '@/components/toast-container'
 import { useNavigationStore, type Tab } from '@/core/stores/navigation-store'
 import { useHydrateSession } from '@/modules/account/hooks/use-hydrate-session'
 import { useProfileSync } from '@/modules/account/hooks/use-profile-sync'
+import { useFriendActivityWatcher } from '@/modules/friends/hooks/use-friend-activity-watcher'
 import { XpHud } from '@/modules/gamification/components/xp-hud'
 import { RemindersBanner } from '@/modules/reminders/components/reminders-banner'
 import { useHabitReminders } from '@/modules/reminders/hooks/use-habit-reminders'
@@ -144,6 +145,7 @@ function App() {
     useHabitReminders()
     useHydrateSession()
     useProfileSync()
+    useFriendActivityWatcher()
 
     return (
         <main className='bg-bg min-h-screen'>
