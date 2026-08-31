@@ -1,7 +1,23 @@
 import { useXpSummary } from '../hooks/use-xp-summary'
 
+import { useNavigationStore } from '@/core/stores/navigation-store'
+import { useSessionStore } from '@/modules/account/store/session-store'
+
 export function XpHud() {
+    const session = useSessionStore(state => state.session)
     const { data: xp } = useXpSummary()
+
+    if (!session) {
+        return (
+            <button
+                type='button'
+                onClick={() => useNavigationStore.getState().setTab('friends')}
+                className='border-border text-text-muted hover:text-text rounded-full border px-3 py-1.5 font-mono text-[11px] font-bold tracking-wider uppercase'
+            >
+                Iniciá sesión
+            </button>
+        )
+    }
 
     if (!xp) return null
 

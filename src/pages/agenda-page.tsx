@@ -25,11 +25,7 @@ export function AgendaPage() {
     }
 
     return (
-        <div
-            className={`mx-auto flex flex-col gap-6 p-10 ${
-                subTab === 'lista' ? 'max-w-6xl' : subTab === 'dia' ? 'max-w-7xl' : 'max-w-4xl'
-            }`}
-        >
+        <div className='mx-auto flex max-w-7xl flex-col gap-6 p-10'>
             <div>
                 <div className='text-accent mb-1 font-mono text-xs font-bold tracking-widest uppercase'>Agenda</div>
                 <h2 className='text-text text-3xl font-bold tracking-tight'>Agenda</h2>

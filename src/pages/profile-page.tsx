@@ -1,3 +1,4 @@
+import { RequiresAccountNotice } from '@/modules/account/components/requires-account-notice'
 import { useSessionStore } from '@/modules/account/store/session-store'
 import { ImportanciaColorsSettings } from '@/modules/profile/components/importancia-colors-settings'
 import { LevelHero } from '@/modules/profile/components/level-hero'
@@ -27,14 +28,22 @@ export function ProfilePage() {
                 </div>
             </div>
 
-            <LevelHero />
+            {session ? (
+                <>
+                    <LevelHero />
+
+                    <div className='flex flex-col gap-3'>
+                        <div className='text-text-muted text-xs font-semibold tracking-wider uppercase'>
+                            Próximos logros
+                        </div>
+                        <NextMilestonesList />
+                    </div>
+                </>
+            ) : (
+                <RequiresAccountNotice message='Iniciá sesión para ver tu nivel, XP y próximos logros.' />
+            )}
 
             <ImportanciaColorsSettings />
-
-            <div className='flex flex-col gap-3'>
-                <div className='text-text-muted text-xs font-semibold tracking-wider uppercase'>Próximos logros</div>
-                <NextMilestonesList />
-            </div>
         </div>
     )
 }

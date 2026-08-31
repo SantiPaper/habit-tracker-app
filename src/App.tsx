@@ -4,6 +4,8 @@ import { ToastContainer } from '@/components/toast-container'
 import { useNavigationStore, type Tab } from '@/core/stores/navigation-store'
 import { useHydrateSession } from '@/modules/account/hooks/use-hydrate-session'
 import { useProfileSync } from '@/modules/account/hooks/use-profile-sync'
+import { isAdmin } from '@/modules/account/lib/admin'
+import { useSessionStore } from '@/modules/account/store/session-store'
 import { XpHud } from '@/modules/gamification/components/xp-hud'
 import { useRealtime } from '@/modules/realtime/hooks/use-realtime'
 import { RemindersBanner } from '@/modules/reminders/components/reminders-banner'
@@ -142,6 +144,7 @@ const TABS: { id: Tab; label: string; Icon: () => JSX.Element }[] = [
 function App() {
     const tab = useNavigationStore(state => state.tab)
     const setTab = useNavigationStore(state => state.setTab)
+    const session = useSessionStore(state => state.session)
 
     useHabitReminders()
     useHydrateSession()
@@ -149,11 +152,14 @@ function App() {
     useRealtime()
     useSyncEngine()
 
+    // Configuración ajusta constantes de XP compartidas por toda la app — solo el admin la ve.
+    const visibleTabs = TABS.filter(t => t.id !== 'settings' || isAdmin(session))
+
     return (
         <main className='bg-bg min-h-screen'>
             <nav className='border-border flex items-center justify-between gap-1 border-b px-4 pt-3'>
                 <div className='flex gap-1'>
-                    {TABS.map(t => (
+                    {visibleTabs.map(t => (
                         <button
                             key={t.id}
                             onClick={() => setTab(t.id)}
@@ -181,7 +187,7 @@ function App() {
             {tab === 'summary' && <SummaryPage />}
             {tab === 'friends' && <FriendsPage />}
             {tab === 'profile' && <ProfilePage />}
-            {tab === 'settings' && <SettingsPage />}
+            {tab === 'settings' && isAdmin(session) && <SettingsPage />}
 
             <ToastContainer />
             <RemindersBanner />

@@ -17,6 +17,7 @@ import { WeekdayPicker } from './weekday-picker'
 import { ComboboxField } from '@/components/combobox-field'
 import { DatePickerField } from '@/components/date-picker-field'
 import { SelectField } from '@/components/select-field'
+import { useSessionStore } from '@/modules/account/store/session-store'
 
 const TIPO_LABELS: Record<HabitTipo, string> = {
     diario_recurrente: 'Diario recurrente (días fijos)',
@@ -42,6 +43,7 @@ const habitFormSchema = z.object({
 type HabitFormValues = z.infer<typeof habitFormSchema>
 
 export function HabitForm() {
+    const session = useSessionStore(state => state.session)
     const [diasSemana, setDiasSemana] = useState<number[]>([])
     const [scheduleBlocks, setScheduleBlocks] = useState<EditableScheduleBlock[]>([])
     const [fecha, setFecha] = useState('')
@@ -78,6 +80,11 @@ export function HabitForm() {
 
     async function onSubmit(values: HabitFormValues) {
         setSubmitError(null)
+
+        if (!session && values.tipo !== 'diario_unico') {
+            setSubmitError('Los hábitos recurrentes necesitan una cuenta — andá a la pestaña Amigos para registrarte.')
+            return
+        }
 
         const common = {
             ...values,
