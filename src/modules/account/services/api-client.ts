@@ -36,8 +36,8 @@ async function refreshSession(current: Session): Promise<Session | null> {
     })
     if (!res.ok) return null
 
-    const data = (await res.json()) as { accessToken: string }
-    const next: Session = { ...current, accessToken: data.accessToken }
+    const data = (await res.json()) as { accessToken: string; refreshToken: string }
+    const next: Session = { ...current, accessToken: data.accessToken, refreshToken: data.refreshToken }
     useSessionStore.getState().setSession(next)
     await setSession(next)
     return next
