@@ -1,0 +1,2 @@
+ALTER TABLE habit ADD COLUMN hora TEXT;
+ALTER TABLE habit ADD COLUMN duracion_minutos INTEGER;

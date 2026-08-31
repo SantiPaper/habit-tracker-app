@@ -1,0 +1,57 @@
+import type { ColumnType } from 'kysely'
+
+export interface Database {
+    habit: HabitTable
+    habit_log: HabitLogTable
+    setting: SettingTable
+    habit_period_claim: HabitPeriodClaimTable
+    habit_schedule_block: HabitScheduleBlockTable
+}
+
+export interface HabitTable {
+    id: string
+    nombre: string
+    tipo: 'diario_recurrente' | 'diario_unico' | 'semanal' | 'mensual'
+    dias_semana: string | null
+    fecha: string | null
+    hora: string | null
+    duracion_minutos: number | null
+    color: string | null
+    importancia: 'alta' | 'media' | 'baja'
+    fecha_inicio: string
+    fecha_fin: string | null
+    activo: number
+    created_at: ColumnType<string, string | undefined, never>
+    updated_at: ColumnType<string, string | undefined, string>
+}
+
+export interface HabitLogTable {
+    id: string
+    habit_id: string
+    periodo: string
+    estado: 'cumplido' | 'no_cumplido' | 'pausado'
+    created_at: ColumnType<string, string | undefined, never>
+    updated_at: ColumnType<string, string | undefined, string>
+}
+
+export interface SettingTable {
+    key: string
+    value: string
+}
+
+export interface HabitPeriodClaimTable {
+    id: string
+    habit_id: string
+    tipo: 'semanal' | 'mensual'
+    periodo: string
+    xp_otorgado: number
+    reclamado_en: ColumnType<string, string | undefined, never>
+}
+
+export interface HabitScheduleBlockTable {
+    id: string
+    habit_id: string
+    dias_semana: string
+    hora: string
+    duracion_minutos: number | null
+}
