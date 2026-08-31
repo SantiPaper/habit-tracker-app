@@ -1,4 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
+import { isPermissionGranted, sendNotification } from '@tauri-apps/plugin-notification'
 import { useEffect, useRef } from 'react'
 
 import { checkNewPendingRequests, checkNivelUp, checkRachaOvertake } from '../lib/friend-activity'
@@ -61,8 +62,18 @@ export function useFriendActivityWatcher() {
 
                 const pending = await listPendingRequests()
                 queryClient.setQueryData(['friends', 'pending'], pending)
-                for (const message of checkNewPendingRequests(pending)) {
-                    useToastStore.getState().addToast('success', message)
+                const newRequestMessages = checkNewPendingRequests(pending)
+                if (newRequestMessages.length > 0) {
+                    for (const message of newRequestMessages) useToastStore.getState().addToast('success', message)
+
+                    // Notificación nativa también acá (a diferencia de subida de nivel/racha, que
+                    // solo son toast) — un pedido de amistad es más "accionable" y vale la pena
+                    // que se vea aunque la app esté minimizada, igual que los recordatorios de hábitos.
+                    if (await isPermissionGranted()) {
+                        for (const message of newRequestMessages) {
+                            void sendNotification({ title: 'Habit Tracker', body: message })
+                        }
+                    }
                 }
             } catch {
                 // sin conexión o el server no responde — se reintenta en el próximo tick
