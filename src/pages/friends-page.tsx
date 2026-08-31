@@ -1,7 +1,6 @@
 import { useState } from 'react'
 
-import { LoginRegisterForm } from '@/modules/account/components/login-register-form'
-import { useLogout } from '@/modules/account/hooks/use-logout'
+import { RequiresAccountNotice } from '@/modules/account/components/requires-account-notice'
 import { useSessionStore } from '@/modules/account/store/session-store'
 import { FriendSearch } from '@/modules/friends/components/friend-search'
 import { FriendsList } from '@/modules/friends/components/friends-list'
@@ -25,7 +24,6 @@ const VIEWS: { id: View; label: string }[] = [
 export function FriendsPage() {
     const session = useSessionStore(state => state.session)
     const hydrated = useSessionStore(state => state.hydrated)
-    const logoutMutation = useLogout()
 
     const [view, setView] = useState<View>('amigos')
     const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null)
@@ -45,32 +43,22 @@ export function FriendsPage() {
 
             {!hydrated && <p className='text-text-muted'>Cargando...</p>}
 
-            {hydrated && !session && <LoginRegisterForm />}
+            {hydrated && !session && (
+                <RequiresAccountNotice message='Iniciá sesión desde tu Perfil para agregar amigos, armar grupos y ver el ranking.' />
+            )}
 
             {hydrated && session && (
                 <div className='flex flex-col gap-8'>
-                    <div className='flex items-center justify-between'>
-                        <span className='text-text-muted text-sm'>
-                            Conectado como <span className='text-text font-medium'>{session.username}</span>
-                        </span>
-                        <button
-                            type='button'
-                            onClick={() => logoutMutation.mutate()}
-                            disabled={logoutMutation.isPending}
-                            className='border-border text-text-muted rounded-lg border px-3 py-1.5 text-xs font-medium disabled:opacity-50'
-                        >
-                            Cerrar sesión
-                        </button>
-                    </div>
-
                     <div className='border-border flex gap-1 border-b'>
                         {VIEWS.map(v => (
                             <button
                                 key={v.id}
                                 type='button'
                                 onClick={() => setView(v.id)}
-                                className={`px-3 py-2 text-sm font-semibold ${
-                                    view === v.id ? 'border-accent text-text border-b-2' : 'text-text-muted'
+                                className={`px-3 py-2 text-sm font-semibold transition-colors ${
+                                    view === v.id
+                                        ? 'border-accent text-text border-b-2'
+                                        : 'text-text-muted hover:text-text border-b-2 border-transparent'
                                 }`}
                             >
                                 {v.label}
@@ -92,7 +80,7 @@ export function FriendsPage() {
                                 <button
                                     type='button'
                                     onClick={() => setSelectedGroupId(null)}
-                                    className='text-text-muted w-fit text-xs'
+                                    className='text-text-muted hover:text-text w-fit text-xs transition-colors'
                                 >
                                     ← Volver a grupos
                                 </button>
@@ -116,10 +104,10 @@ export function FriendsPage() {
                                 <button
                                     type='button'
                                     onClick={() => setRankingSource('friends')}
-                                    className={`rounded-full px-3 py-1 font-mono text-[11px] font-bold tracking-wider uppercase ${
+                                    className={`rounded-full px-3 py-1 font-mono text-[11px] font-bold tracking-wider uppercase transition-colors ${
                                         rankingSource === 'friends'
                                             ? 'bg-accent text-accent-ink'
-                                            : 'border-border text-text-muted border'
+                                            : 'border-border text-text-muted hover:text-text border'
                                     }`}
                                 >
                                     Amigos
@@ -129,10 +117,10 @@ export function FriendsPage() {
                                         key={g.id}
                                         type='button'
                                         onClick={() => setRankingSource(g.id)}
-                                        className={`rounded-full px-3 py-1 font-mono text-[11px] font-bold tracking-wider uppercase ${
+                                        className={`rounded-full px-3 py-1 font-mono text-[11px] font-bold tracking-wider uppercase transition-colors ${
                                             rankingSource === g.id
                                                 ? 'bg-accent text-accent-ink'
-                                                : 'border-border text-text-muted border'
+                                                : 'border-border text-text-muted hover:text-text border'
                                         }`}
                                     >
                                         {g.name}

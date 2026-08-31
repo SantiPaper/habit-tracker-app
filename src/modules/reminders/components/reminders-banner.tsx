@@ -49,7 +49,7 @@ export function RemindersBanner() {
                         void request()
                         dismiss()
                     }}
-                    className='bg-accent text-accent-ink rounded-lg px-3 py-1.5 text-xs font-bold'
+                    className='bg-accent text-accent-ink rounded-lg px-3 py-1.5 text-xs font-bold transition-opacity hover:opacity-90 active:opacity-80'
                 >
                     Activar
                 </button>

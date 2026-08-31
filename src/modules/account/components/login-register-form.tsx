@@ -90,7 +90,7 @@ export function LoginRegisterForm() {
                 <button
                     type='submit'
                     disabled={mutation.isPending}
-                    className='bg-accent text-accent-ink mt-1 rounded-lg px-4 py-2.5 text-sm font-bold disabled:opacity-50'
+                    className='bg-accent text-accent-ink mt-1 rounded-lg px-4 py-2.5 text-sm font-bold transition-opacity hover:opacity-90 active:opacity-80 disabled:opacity-50'
                 >
                     {mutation.isPending ? 'Un momento...' : mode === 'login' ? 'Entrar' : 'Crear cuenta'}
                 </button>
@@ -99,7 +99,7 @@ export function LoginRegisterForm() {
             <button
                 type='button'
                 onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
-                className='text-text-muted hover:text-text text-center text-xs'
+                className='text-text-muted hover:text-text text-center text-xs transition-colors'
             >
                 {mode === 'login' ? '¿No tenés cuenta? Creá una' : '¿Ya tenés cuenta? Iniciá sesión'}
             </button>

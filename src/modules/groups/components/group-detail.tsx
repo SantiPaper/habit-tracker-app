@@ -107,7 +107,7 @@ export function GroupDetail({ groupId, onLeft }: GroupDetailProps) {
                                 type='button'
                                 onClick={() => addMemberMutation.mutate({ groupId, memberId: friend.id })}
                                 disabled={addMemberMutation.isPending}
-                                className='bg-accent text-accent-ink rounded-full px-3 py-1 font-mono text-[11px] font-bold tracking-wider uppercase disabled:opacity-50'
+                                className='bg-accent text-accent-ink rounded-full px-3 py-1 font-mono text-[11px] font-bold tracking-wider uppercase transition-opacity hover:opacity-90 active:opacity-80 disabled:opacity-50'
                             >
                                 Agregar
                             </button>

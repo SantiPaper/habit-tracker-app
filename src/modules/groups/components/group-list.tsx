@@ -15,7 +15,7 @@ export function GroupList({ onSelect, onCreateClick }: GroupListProps) {
                 <button
                     type='button'
                     onClick={onCreateClick}
-                    className='bg-accent text-accent-ink rounded-full px-3 py-1 font-mono text-[11px] font-bold tracking-wider uppercase'
+                    className='bg-accent text-accent-ink rounded-full px-3 py-1 font-mono text-[11px] font-bold tracking-wider uppercase transition-opacity hover:opacity-90 active:opacity-80'
                 >
                     Crear grupo
                 </button>

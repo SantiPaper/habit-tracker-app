@@ -219,7 +219,7 @@ export function EditHabitDialog({ habit, onClose }: EditHabitDialogProps) {
                         type='button'
                         onClick={handleSave}
                         disabled={updateHabitMutation.isPending}
-                        className='bg-accent text-accent-ink rounded-lg px-4 py-2 text-sm font-bold disabled:opacity-50'
+                        className='bg-accent text-accent-ink rounded-lg px-4 py-2 text-sm font-bold transition-opacity hover:opacity-90 active:opacity-80 disabled:opacity-50'
                     >
                         {updateHabitMutation.isPending ? 'Guardando...' : 'Guardar'}
                     </button>

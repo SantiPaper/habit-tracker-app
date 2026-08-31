@@ -35,7 +35,7 @@ export function ClaimButton({ habitId, tipo, periodo, xpAmount }: ClaimButtonPro
             type='button'
             onClick={() => claimMutation.mutate({ habitId, tipo, periodo, xpOtorgado: xpAmount })}
             disabled={claimMutation.isPending}
-            className='bg-accent text-accent-ink rounded-full px-2.5 py-1 font-mono text-[11px] font-bold tracking-wider uppercase disabled:opacity-50'
+            className='bg-accent text-accent-ink rounded-full px-2.5 py-1 font-mono text-[11px] font-bold tracking-wider uppercase transition-opacity hover:opacity-90 active:opacity-80 disabled:opacity-50'
         >
             Reclamar +{xpAmount} XP
         </button>

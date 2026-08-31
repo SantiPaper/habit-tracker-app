@@ -11,8 +11,8 @@ export function XpHud() {
         return (
             <button
                 type='button'
-                onClick={() => useNavigationStore.getState().setTab('friends')}
-                className='border-border text-text-muted hover:text-text rounded-full border px-3 py-1.5 font-mono text-[11px] font-bold tracking-wider uppercase'
+                onClick={() => useNavigationStore.getState().setTab('profile')}
+                className='border-border text-text-muted hover:border-text-muted hover:text-text rounded-full border px-3 py-1.5 font-mono text-[11px] font-bold tracking-wider uppercase transition-colors'
             >
                 Iniciá sesión
             </button>

@@ -68,7 +68,7 @@ export function CreateGroupForm({ onCreated, onCancel }: CreateGroupFormProps) {
                     type='button'
                     onClick={submit}
                     disabled={!name.trim() || createGroupMutation.isPending}
-                    className='bg-accent text-accent-ink rounded-lg px-3 py-1.5 text-xs font-bold disabled:opacity-50'
+                    className='bg-accent text-accent-ink rounded-lg px-3 py-1.5 text-xs font-bold transition-opacity hover:opacity-90 active:opacity-80 disabled:opacity-50'
                 >
                     Crear
                 </button>

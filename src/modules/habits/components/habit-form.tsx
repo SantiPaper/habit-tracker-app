@@ -93,7 +93,7 @@ export function HabitForm() {
         setSubmitError(null)
 
         if (!session && values.tipo !== 'diario_unico') {
-            setSubmitError('Los hábitos recurrentes necesitan una cuenta — andá a la pestaña Amigos para registrarte.')
+            setSubmitError('Los hábitos recurrentes necesitan una cuenta — andá a la pestaña Perfil para registrarte.')
             return
         }
 
@@ -282,7 +282,7 @@ export function HabitForm() {
             <button
                 type='submit'
                 disabled={createHabitMutation.isPending}
-                className='bg-accent text-accent-ink self-start rounded-lg px-6 py-3 text-sm font-bold disabled:opacity-50'
+                className='bg-accent text-accent-ink self-start rounded-lg px-6 py-3 text-sm font-bold transition-opacity hover:opacity-90 active:opacity-80 disabled:opacity-50'
             >
                 {createHabitMutation.isPending ? 'Creando...' : 'Crear hábito'}
             </button>

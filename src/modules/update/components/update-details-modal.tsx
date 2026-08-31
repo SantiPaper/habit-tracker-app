@@ -49,7 +49,7 @@ export function UpdateDetailsModal({ version, notes, installing, onConfirm, onCa
                         type='button'
                         onClick={onConfirm}
                         disabled={installing}
-                        className='bg-accent text-accent-ink rounded-lg px-4 py-2 text-sm font-bold disabled:opacity-60'
+                        className='bg-accent text-accent-ink rounded-lg px-4 py-2 text-sm font-bold transition-opacity hover:opacity-90 active:opacity-80 disabled:opacity-60'
                     >
                         {installing ? 'Actualizando…' : 'Actualizar'}
                     </button>

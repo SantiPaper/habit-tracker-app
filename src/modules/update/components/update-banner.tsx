@@ -40,7 +40,7 @@ export function UpdateBanner() {
                         type='button'
                         onClick={() => setShowDetails(true)}
                         disabled={installing}
-                        className='bg-accent text-accent-ink rounded-lg px-3 py-1.5 text-xs font-bold disabled:opacity-60'
+                        className='bg-accent text-accent-ink rounded-lg px-3 py-1.5 text-xs font-bold transition-opacity hover:opacity-90 active:opacity-80 disabled:opacity-60'
                     >
                         {installing ? 'Actualizando…' : 'Actualizar ahora'}
                     </button>
