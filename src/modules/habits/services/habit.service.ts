@@ -31,6 +31,36 @@ export async function listHabits(): Promise<Habit[]> {
     return rows.map(row => toDomainHabit(row, blocksByHabitId.get(row.id) ?? []))
 }
 
+export interface PastUnicoHabit {
+    nombre: string
+    color: string | null
+    importancia: Habit['importancia']
+}
+
+/**
+ * Nombres de hábitos `diario_unico` ya creados antes (deduplicados, el más reciente de cada
+ * nombre) — para poder "repetir" uno en otra fecha sin volver a tipearlo de cero y sin que
+ * variaciones de tipeo (ej. "Entrenar movilidad" vs "Entrenar hoy movilidad") ensucien el
+ * historial con nombres que en realidad son el mismo hábito para el usuario.
+ */
+export async function listPastUnicoHabitNames(): Promise<PastUnicoHabit[]> {
+    const rows = await db
+        .selectFrom('habit')
+        .select(['nombre', 'color', 'importancia'])
+        .where('tipo', '=', 'diario_unico')
+        .orderBy('created_at', 'desc')
+        .execute()
+
+    const seen = new Set<string>()
+    const result: PastUnicoHabit[] = []
+    for (const row of rows) {
+        if (seen.has(row.nombre)) continue
+        seen.add(row.nombre)
+        result.push({ nombre: row.nombre, color: row.color, importancia: row.importancia })
+    }
+    return result
+}
+
 export async function listActiveHabitsByTipo(tipo: HabitTipo): Promise<Habit[]> {
     const [rows, blocks] = await Promise.all([
         db

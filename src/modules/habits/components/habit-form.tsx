@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
 import { useCreateHabit } from '../hooks/use-create-habit'
+import { usePastUnicoHabits } from '../hooks/use-past-unico-habits'
 import { DURATION_OPTIONS, TIME_OPTIONS, formatDuration } from '../lib/schedule-options'
 import { createHabitSchema } from '../schemas/habit.schema'
 import type { HabitImportancia, HabitTipo } from '../types/habit.types'
@@ -52,13 +53,16 @@ export function HabitForm() {
     const [color, setColor] = useState<string | null>(null)
     const [importancia, setImportancia] = useState<HabitImportancia>('media')
     const [submitError, setSubmitError] = useState<string | null>(null)
+    const [showPastUnico, setShowPastUnico] = useState(false)
     const createHabitMutation = useCreateHabit()
+    const { data: pastUnicoHabits } = usePastUnicoHabits()
 
     const {
         register,
         handleSubmit,
         watch,
         reset,
+        setValue,
         formState: { errors }
     } = useForm<HabitFormValues>({
         resolver: zodResolver(habitFormSchema),
@@ -66,6 +70,13 @@ export function HabitForm() {
     })
 
     const tipo = watch('tipo')
+
+    function pickPastUnico(past: { nombre: string; color: string | null; importancia: HabitImportancia }) {
+        setValue('nombre', past.nombre, { shouldValidate: true })
+        setColor(past.color)
+        setImportancia(past.importancia)
+        setShowPastUnico(false)
+    }
 
     function changeDiasSemana(value: number[]) {
         setDiasSemana(value)
@@ -125,6 +136,7 @@ export function HabitForm() {
         setDuracionMinutos('')
         setColor(null)
         setImportancia('media')
+        setShowPastUnico(false)
     }
 
     return (
@@ -147,6 +159,35 @@ export function HabitForm() {
                         placeholder='Ir al gimnasio'
                     />
                     {errors.nombre && <span className='text-sm text-red-400'>{errors.nombre.message}</span>}
+
+                    {tipo === 'diario_unico' && pastUnicoHabits && pastUnicoHabits.length > 0 && (
+                        <div className='flex flex-col gap-2'>
+                            <button
+                                type='button'
+                                onClick={() => setShowPastUnico(v => !v)}
+                                className='text-text-muted hover:text-text w-fit text-xs font-medium underline'
+                            >
+                                {showPastUnico
+                                    ? 'Ocultar hábitos anteriores'
+                                    : 'Repetir un hábito de único día ya creado'}
+                            </button>
+
+                            {showPastUnico && (
+                                <div className='border-border bg-bg flex flex-col gap-1 rounded-lg border p-2'>
+                                    {pastUnicoHabits.map(past => (
+                                        <button
+                                            key={past.nombre}
+                                            type='button'
+                                            onClick={() => pickPastUnico(past)}
+                                            className='text-text hover:bg-surface-2 rounded-md px-2.5 py-1.5 text-left text-sm'
+                                        >
+                                            {past.nombre}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 <div className='flex w-72 flex-col gap-1.5'>
