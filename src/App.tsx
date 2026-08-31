@@ -7,6 +7,7 @@ import { useProfileSync } from '@/modules/account/hooks/use-profile-sync'
 import { XpHud } from '@/modules/gamification/components/xp-hud'
 import { RemindersBanner } from '@/modules/reminders/components/reminders-banner'
 import { useHabitReminders } from '@/modules/reminders/hooks/use-habit-reminders'
+import { UpdateBanner } from '@/modules/update/components/update-banner'
 import { AgendaPage } from '@/pages/agenda-page'
 import { FriendsPage } from '@/pages/friends-page'
 import { HabitsPage } from '@/pages/habits-page'
@@ -180,6 +181,7 @@ function App() {
 
             <ToastContainer />
             <RemindersBanner />
+            <UpdateBanner />
         </main>
     )
 }

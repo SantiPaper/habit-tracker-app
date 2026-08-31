@@ -12,6 +12,8 @@
         "sql:allow-select",
         "sql:allow-close",
         "notification:default",
+        "updater:default",
+        "process:allow-restart",
         {
             "identifier": "http:default",
             "allow": [{ "url": "https://habit-tracker-server-um59.onrender.com/*" }]
