@@ -28,12 +28,28 @@ interface RequestOptions {
     query?: Record<string, string>
 }
 
+/** Solo esto significa "el refresh token ya no sirve" — el server lo dice explícito con un 401. */
+class RefreshTokenInvalidError extends Error {}
+
+/**
+ * Devuelve `null` ante cualquier falla que NO sea "el server dijo explícitamente que el refresh
+ * token es inválido" — Render free tier duerme tras inactividad y puede tardar en despertar
+ * (timeout, 502/503 mientras arranca) o simplemente puede fallar la red; ninguna de esas
+ * situaciones significa que el token esté mal, así que no ameritan cerrar la sesión local.
+ */
 async function refreshSession(current: Session): Promise<Session | null> {
-    const res = await tauriFetch(`${API_BASE_URL}/auth/refresh`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refreshToken: current.refreshToken })
-    })
+    let res: Response
+    try {
+        res = await tauriFetch(`${API_BASE_URL}/auth/refresh`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refreshToken: current.refreshToken })
+        })
+    } catch {
+        return null
+    }
+
+    if (res.status === 401) throw new RefreshTokenInvalidError()
     if (!res.ok) return null
 
     const data = (await res.json()) as { accessToken: string; refreshToken: string }
@@ -70,12 +86,18 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     let res = await send(session?.accessToken)
 
     if (res.status === 401 && session) {
-        const refreshed = await refreshSession(session)
-        if (refreshed) {
-            res = await send(refreshed.accessToken)
-        } else {
-            useSessionStore.getState().setSession(null)
-            await clearSession()
+        try {
+            const refreshed = await refreshSession(session)
+            if (refreshed) res = await send(refreshed.accessToken)
+            // Si `refreshed` es null (red caída, Render despertando, etc.) no tocamos la sesión —
+            // se reintenta solo en el próximo request. La request actual sigue devolviendo el 401
+            // original, que el caller puede tratar como error transitorio de red.
+        } catch (error) {
+            if (error instanceof RefreshTokenInvalidError) {
+                useSessionStore.getState().setSession(null)
+                await clearSession()
+            }
+            // Otros errores durante el refresh tampoco cierran la sesión.
         }
     }
 
