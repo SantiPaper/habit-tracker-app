@@ -1,5 +1,10 @@
 import { apiRequest } from '@/modules/account/services/api-client'
-import type { Friend, PendingFriendRequest, UserSearchResult } from '@/modules/friends/types/friends.types'
+import type {
+    Friend,
+    FriendActivityEvent,
+    PendingFriendRequest,
+    UserSearchResult
+} from '@/modules/friends/types/friends.types'
 
 export function searchUsers(query: string) {
     return apiRequest<UserSearchResult[]>('/friends/search', { query: { q: query } })
@@ -25,4 +30,8 @@ export function listFriends() {
 
 export function removeFriend(friendshipId: string) {
     return apiRequest<void>(`/friends/${friendshipId}`, { method: 'DELETE' })
+}
+
+export function listFriendActivity() {
+    return apiRequest<FriendActivityEvent[]>('/friends/activity')
 }

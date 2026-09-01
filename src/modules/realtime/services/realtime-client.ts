@@ -3,6 +3,7 @@ export type WsInboundMessage =
     | { type: 'pending_requests_changed' }
     | { type: 'group_changed'; groupId: string }
     | { type: 'habit_data_changed' }
+    | { type: 'activity_feed_changed' }
     | { type: 'auth_ok' }
 
 const WS_URL = 'wss://habit-tracker-server-um59.onrender.com/ws'

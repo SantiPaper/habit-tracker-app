@@ -31,6 +31,7 @@ export function useRealtime() {
             switch (msg.type) {
                 case 'friends_changed':
                 case 'pending_requests_changed':
+                case 'activity_feed_changed':
                     void runFriendActivityTick(queryClient)
                     break
                 case 'group_changed':

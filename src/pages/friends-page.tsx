@@ -2,6 +2,7 @@ import { useState } from 'react'
 
 import { RequiresAccountNotice } from '@/modules/account/components/requires-account-notice'
 import { useSessionStore } from '@/modules/account/store/session-store'
+import { ActivityFeedList } from '@/modules/friends/components/activity-feed-list'
 import { FriendSearch } from '@/modules/friends/components/friend-search'
 import { FriendsList } from '@/modules/friends/components/friends-list'
 import { PendingRequestsList } from '@/modules/friends/components/pending-requests-list'
@@ -13,12 +14,13 @@ import { useGroup } from '@/modules/groups/hooks/use-group'
 import { useGroups } from '@/modules/groups/hooks/use-groups'
 import { LeaderboardList } from '@/modules/leaderboard/components/leaderboard-list'
 
-type View = 'amigos' | 'grupos' | 'ranking'
+type View = 'amigos' | 'grupos' | 'ranking' | 'actividad'
 
 const VIEWS: { id: View; label: string }[] = [
     { id: 'amigos', label: 'Amigos' },
     { id: 'grupos', label: 'Grupos' },
-    { id: 'ranking', label: 'Ranking' }
+    { id: 'ranking', label: 'Ranking' },
+    { id: 'actividad', label: 'Actividad' }
 ]
 
 export function FriendsPage() {
@@ -134,6 +136,8 @@ export function FriendsPage() {
                             />
                         </div>
                     )}
+
+                    {view === 'actividad' && <ActivityFeedList />}
                 </div>
             )}
         </div>

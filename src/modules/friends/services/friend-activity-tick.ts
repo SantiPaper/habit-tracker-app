@@ -1,41 +1,31 @@
 import type { QueryClient } from '@tanstack/react-query'
 import { isPermissionGranted, sendNotification } from '@tauri-apps/plugin-notification'
 
-import { checkNewPendingRequests, checkNivelUp, checkRachaOvertake } from '../lib/friend-activity'
+import { checkNewActivity, checkNewPendingRequests, formatActivityMessage } from '../lib/friend-activity'
 
-import { listFriends, listPendingRequests } from './friends-api.service'
+import { listFriendActivity, listFriends, listPendingRequests } from './friends-api.service'
 
 import { useToastStore } from '@/core/stores/toast-store'
 import { useSessionStore } from '@/modules/account/store/session-store'
-import { getRachaMaxima } from '@/modules/profile/hooks/use-racha-maxima'
 
 /**
  * Función plana (no hook) — llamada tanto por el disparo instantáneo del WebSocket
- * (`use-realtime.ts`, ante `friends_changed`/`pending_requests_changed`) como por su poll de
- * respaldo. Trae amigos+pendientes, ceba la cache de React Query, y corre la detección pura de
- * `friend-activity.ts` para avisar (toast + notificación nativa para pedidos nuevos).
+ * (`use-realtime.ts`, ante `friends_changed`/`pending_requests_changed`/`activity_feed_changed`)
+ * como por su poll de respaldo. Trae amigos+pendientes+actividad, ceba la cache de React Query, y
+ * corre la detección pura de `friend-activity.ts` para avisar (toast + notificación nativa para
+ * pedidos nuevos).
  */
 export async function runFriendActivityTick(queryClient: QueryClient): Promise<void> {
     const session = useSessionStore.getState().session
     if (!session) return
 
     try {
-        const [friends, myRachaMaxima] = await Promise.all([listFriends(), getRachaMaxima()])
+        const [friends, activity] = await Promise.all([listFriends(), listFriendActivity()])
         queryClient.setQueryData(['friends'], friends)
+        queryClient.setQueryData(['friends', 'activity'], activity)
 
-        for (const friend of friends) {
-            if (!friend.profileSnapshot) continue
-
-            const nivelMessage = checkNivelUp(friend.friendshipId, friend.username, friend.profileSnapshot.nivel)
-            if (nivelMessage) useToastStore.getState().addToast('success', nivelMessage)
-
-            const rachaMessage = checkRachaOvertake(
-                friend.friendshipId,
-                friend.username,
-                myRachaMaxima,
-                friend.profileSnapshot.rachaMaxima
-            )
-            if (rachaMessage) useToastStore.getState().addToast('success', rachaMessage)
+        for (const event of checkNewActivity(activity)) {
+            useToastStore.getState().addToast('success', formatActivityMessage(event))
         }
 
         const pending = await listPendingRequests()

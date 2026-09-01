@@ -22,3 +22,13 @@ export interface UserSearchResult {
     id: string
     username: string
 }
+
+export type FriendActivityEventType = 'nivel_up' | 'racha_record'
+
+export interface FriendActivityEvent {
+    id: string
+    type: FriendActivityEventType
+    payload: { nivel: number } | { rachaMaxima: number }
+    createdAt: string
+    user: { id: string; username: string }
+}
