@@ -1,5 +1,6 @@
 import { db } from '@/core/db/client'
 import type { HabitLogTable, HabitTable } from '@/core/db/schema'
+import { useSessionStore } from '@/modules/account/store/session-store'
 
 const SYNC_CURSOR_KEY = 'syncCursor'
 const EPOCH_SQLITE = '0000-01-01 00:00:00'
@@ -197,9 +198,16 @@ export async function applyRemoteChanges(remote: RemoteChanges): Promise<void> {
             if (existing) {
                 await trx.updateTable('habit').set(mutableFields).where('id', '=', habit.id).execute()
             } else {
+                // Un hábito que llega por sync siempre es de la cuenta que está haciendo el pull —
+                // sin esto quedaría sin dueño e invisible incluso para esa misma cuenta.
                 await trx
                     .insertInto('habit')
-                    .values({ id: habit.id, ...mutableFields, created_at: isoToSqlite(habit.createdAt) })
+                    .values({
+                        id: habit.id,
+                        ...mutableFields,
+                        created_at: isoToSqlite(habit.createdAt),
+                        owner_user_id: useSessionStore.getState().session?.userId ?? null
+                    })
                     .execute()
             }
 

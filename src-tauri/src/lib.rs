@@ -69,6 +69,12 @@ pub fn run() {
             sql: include_str!("../migrations/0011_add_schedule_exceptions.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 12,
+            description: "add owner_user_id to habit",
+            sql: include_str!("../migrations/0012_add_habit_owner.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()

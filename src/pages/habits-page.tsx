@@ -1,5 +1,7 @@
 import { useState } from 'react'
 
+import { RequiresAccountNotice } from '@/modules/account/components/requires-account-notice'
+import { useSessionStore } from '@/modules/account/store/session-store'
 import { HabitForm } from '@/modules/habits/components/habit-form'
 import { HabitList } from '@/modules/habits/components/habit-list'
 
@@ -12,6 +14,8 @@ const SUB_TABS: { id: HabitsSubTab; label: string }[] = [
 
 export function HabitsPage() {
     const [subTab, setSubTab] = useState<HabitsSubTab>('nuevo')
+    const session = useSessionStore(state => state.session)
+    const hydrated = useSessionStore(state => state.hydrated)
 
     return (
         <div className='mx-auto flex max-w-2xl flex-col gap-6 p-10'>
@@ -20,23 +24,31 @@ export function HabitsPage() {
                 <h2 className='text-text text-3xl font-bold tracking-tight'>Hábitos</h2>
             </div>
 
-            <div className='flex gap-1.5'>
-                {SUB_TABS.map(tab => (
-                    <button
-                        key={tab.id}
-                        type='button'
-                        onClick={() => setSubTab(tab.id)}
-                        className={`rounded-full px-3.5 py-1.5 font-mono text-xs font-bold tracking-wider uppercase ${
-                            subTab === tab.id ? 'bg-accent text-accent-ink' : 'bg-surface-2 text-text-muted'
-                        }`}
-                    >
-                        {tab.label}
-                    </button>
-                ))}
-            </div>
+            {hydrated && !session && (
+                <RequiresAccountNotice message='Los hábitos son exclusivos de tu cuenta — iniciá sesión desde tu Perfil para crear y ver los tuyos.' />
+            )}
 
-            {subTab === 'lista' && <HabitList />}
-            {subTab === 'nuevo' && <HabitForm />}
+            {hydrated && session && (
+                <>
+                    <div className='flex gap-1.5'>
+                        {SUB_TABS.map(tab => (
+                            <button
+                                key={tab.id}
+                                type='button'
+                                onClick={() => setSubTab(tab.id)}
+                                className={`rounded-full px-3.5 py-1.5 font-mono text-xs font-bold tracking-wider uppercase ${
+                                    subTab === tab.id ? 'bg-accent text-accent-ink' : 'bg-surface-2 text-text-muted'
+                                }`}
+                            >
+                                {tab.label}
+                            </button>
+                        ))}
+                    </div>
+
+                    {subTab === 'lista' && <HabitList />}
+                    {subTab === 'nuevo' && <HabitForm />}
+                </>
+            )}
         </div>
     )
 }

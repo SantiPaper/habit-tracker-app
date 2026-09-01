@@ -2,6 +2,8 @@ import { format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { useState } from 'react'
 
+import { RequiresAccountNotice } from '@/modules/account/components/requires-account-notice'
+import { useSessionStore } from '@/modules/account/store/session-store'
 import { ColorPickerField } from '@/modules/habits/components/color-picker-field'
 import { ImportanciaSelector } from '@/modules/habits/components/importancia-selector'
 import { useCreateHabit } from '@/modules/habits/hooks/use-create-habit'
@@ -25,12 +27,26 @@ interface QuickCreateHabitDialogProps {
  * sigue estando el flujo completo en la pestaña Hábitos.
  */
 export function QuickCreateHabitDialog({ fecha, hora, onClose }: QuickCreateHabitDialogProps) {
+    const session = useSessionStore(state => state.session)
     const [nombre, setNombre] = useState('')
     const [importancia, setImportancia] = useState<HabitImportancia>('media')
     const [color, setColor] = useState<string | null>(null)
     const [duracionMinutos, setDuracionMinutos] = useState('')
     const [error, setError] = useState<string | null>(null)
     const createHabitMutation = useCreateHabit()
+
+    if (!session) {
+        return (
+            <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/60' onClick={onClose}>
+                <div
+                    className='border-border bg-surface w-96 rounded-2xl border p-6'
+                    onClick={e => e.stopPropagation()}
+                >
+                    <RequiresAccountNotice message='Los hábitos son exclusivos de tu cuenta — iniciá sesión desde tu Perfil para crear uno.' />
+                </div>
+            </div>
+        )
+    }
 
     async function handleCreate() {
         setError(null)

@@ -9,6 +9,18 @@ import { toDomainHabit } from './habit.mappers'
 import { db } from '@/core/db/client'
 import type { HabitScheduleBlockTable } from '@/core/db/schema'
 import { toDateKey } from '@/lib/date/period'
+import { useSessionStore } from '@/modules/account/store/session-store'
+
+/**
+ * Los hábitos son exclusivos de la cuenta — sin sesión no hay `userId` para filtrar, así que se
+ * lee acá directo del store (no por prop/parámetro: `habit.service.ts` lo llaman decenas de hooks
+ * en toda la app, pasar la sesión a cada uno sería un cambio mucho más invasivo para el mismo
+ * resultado). Mismo patrón que ya usa `api-client.ts`/`friend-activity-tick.ts` para leer la
+ * sesión fuera de un componente React.
+ */
+function currentOwnerId(): string | null {
+    return useSessionStore.getState().session?.userId ?? null
+}
 
 function groupBlocksByHabitId(
     blocks: Selectable<HabitScheduleBlockTable>[]
@@ -23,8 +35,11 @@ function groupBlocksByHabitId(
 }
 
 export async function listHabits(): Promise<Habit[]> {
+    const ownerId = currentOwnerId()
+    if (!ownerId) return []
+
     const [rows, blocks] = await Promise.all([
-        db.selectFrom('habit').selectAll().orderBy('created_at', 'asc').execute(),
+        db.selectFrom('habit').selectAll().where('owner_user_id', '=', ownerId).orderBy('created_at', 'asc').execute(),
         listAllScheduleBlocks()
     ])
     const blocksByHabitId = groupBlocksByHabitId(blocks)
@@ -44,10 +59,14 @@ export interface PastUnicoHabit {
  * historial con nombres que en realidad son el mismo hábito para el usuario.
  */
 export async function listPastUnicoHabitNames(): Promise<PastUnicoHabit[]> {
+    const ownerId = currentOwnerId()
+    if (!ownerId) return []
+
     const rows = await db
         .selectFrom('habit')
         .select(['nombre', 'color', 'importancia'])
         .where('tipo', '=', 'diario_unico')
+        .where('owner_user_id', '=', ownerId)
         .orderBy('created_at', 'desc')
         .execute()
 
@@ -62,12 +81,16 @@ export async function listPastUnicoHabitNames(): Promise<PastUnicoHabit[]> {
 }
 
 export async function listActiveHabitsByTipo(tipo: HabitTipo): Promise<Habit[]> {
+    const ownerId = currentOwnerId()
+    if (!ownerId) return []
+
     const [rows, blocks] = await Promise.all([
         db
             .selectFrom('habit')
             .selectAll()
             .where('tipo', '=', tipo)
             .where('activo', '=', 1)
+            .where('owner_user_id', '=', ownerId)
             .orderBy('created_at', 'asc')
             .execute(),
         tipo === 'diario_recurrente' ? listAllScheduleBlocks() : Promise.resolve([])
@@ -77,6 +100,9 @@ export async function listActiveHabitsByTipo(tipo: HabitTipo): Promise<Habit[]> 
 }
 
 export async function createHabit(input: CreateHabitInput): Promise<Habit> {
+    const ownerId = currentOwnerId()
+    if (!ownerId) throw new Error('Necesitás una cuenta para crear hábitos')
+
     const id = crypto.randomUUID()
     const today = toDateKey(new Date())
 
@@ -95,7 +121,8 @@ export async function createHabit(input: CreateHabitInput): Promise<Habit> {
                 importancia: input.importancia,
                 fecha_inicio: today,
                 fecha_fin: null,
-                activo: 1
+                activo: 1,
+                owner_user_id: ownerId
             })
             .returningAll()
             .executeTakeFirstOrThrow()
@@ -117,6 +144,9 @@ export interface UpdateHabitDetailsInput {
 }
 
 export async function updateHabitDetails(habitId: string, changes: UpdateHabitDetailsInput): Promise<Habit> {
+    const ownerId = currentOwnerId()
+    if (!ownerId) throw new Error('Necesitás una cuenta para editar hábitos')
+
     const row = await db
         .updateTable('habit')
         .set({
@@ -132,6 +162,7 @@ export async function updateHabitDetails(habitId: string, changes: UpdateHabitDe
             updated_at: sql`datetime('now')`
         })
         .where('id', '=', habitId)
+        .where('owner_user_id', '=', ownerId)
         .returningAll()
         .executeTakeFirstOrThrow()
 
@@ -141,10 +172,14 @@ export async function updateHabitDetails(habitId: string, changes: UpdateHabitDe
 }
 
 export async function retireHabit(habitId: string, fechaFin: string): Promise<void> {
+    const ownerId = currentOwnerId()
+    if (!ownerId) throw new Error('Necesitás una cuenta para editar hábitos')
+
     await db
         .updateTable('habit')
         .set({ fecha_fin: fechaFin, activo: 0, updated_at: sql`datetime('now')` })
         .where('id', '=', habitId)
+        .where('owner_user_id', '=', ownerId)
         .execute()
 }
 
@@ -153,11 +188,15 @@ export async function replaceHabitSchedule(
     fechaFin: string,
     newHabit: CreateHabitInput
 ): Promise<Habit> {
+    const ownerId = currentOwnerId()
+    if (!ownerId) throw new Error('Necesitás una cuenta para editar hábitos')
+
     return db.transaction().execute(async trx => {
         await trx
             .updateTable('habit')
             .set({ fecha_fin: fechaFin, activo: 0, updated_at: sql`datetime('now')` })
             .where('id', '=', oldHabitId)
+            .where('owner_user_id', '=', ownerId)
             .execute()
 
         const id = crypto.randomUUID()
@@ -177,7 +216,8 @@ export async function replaceHabitSchedule(
                 importancia: newHabit.importancia,
                 fecha_inicio: today,
                 fecha_fin: null,
-                activo: 1
+                activo: 1,
+                owner_user_id: ownerId
             })
             .returningAll()
             .executeTakeFirstOrThrow()

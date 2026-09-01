@@ -92,8 +92,8 @@ export function HabitForm() {
     async function onSubmit(values: HabitFormValues) {
         setSubmitError(null)
 
-        if (!session && values.tipo !== 'diario_unico') {
-            setSubmitError('Los hábitos recurrentes necesitan una cuenta — andá a la pestaña Perfil para registrarte.')
+        if (!session) {
+            setSubmitError('Los hábitos son exclusivos de tu cuenta — andá a la pestaña Perfil para registrarte.')
             return
         }
 

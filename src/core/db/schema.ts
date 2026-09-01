@@ -28,6 +28,8 @@ export interface HabitTable {
     activo: number
     created_at: ColumnType<string, string | undefined, never>
     updated_at: ColumnType<string, string | undefined, string>
+    /** Cuenta dueña del hábito — sin esto (o sin sesión activa que matchee) el hábito no se lista ni se puede editar. */
+    owner_user_id: string | null
 }
 
 export interface HabitLogTable {
