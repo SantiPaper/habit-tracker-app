@@ -5,6 +5,7 @@ import { useState } from 'react'
 
 import { HabitBlock } from './habit-block'
 import { MonthCalendar } from './month-calendar'
+import { RescheduleConfirmDialog } from './reschedule-confirm-dialog'
 import { TimeGridShell } from './time-grid-shell'
 
 import { toDateKey } from '@/lib/date/period'
@@ -28,6 +29,10 @@ import { useHabitsForDate } from '@/modules/daily/hooks/use-habits-for-date'
 import { useSetHabitLog } from '@/modules/daily/hooks/use-set-habit-log'
 import { EventChip } from '@/modules/events/components/event-chip'
 import { useEventsForDate } from '@/modules/events/hooks/use-events-for-date'
+import { useRescheduleRecurrenteForever } from '@/modules/habits/hooks/use-reschedule-recurrente-forever'
+import { useRescheduleUnico } from '@/modules/habits/hooks/use-reschedule-unico'
+import { useScheduleExceptionsInRange } from '@/modules/habits/hooks/use-schedule-exceptions-in-range'
+import { useUpsertScheduleException } from '@/modules/habits/hooks/use-upsert-schedule-exception'
 import { ESTADO_BLOCK_STYLE, cycleEstado } from '@/modules/habits/lib/estado-display'
 import { isImportanceOverdue } from '@/modules/habits/lib/importance-alert'
 import { getBlocksForDate } from '@/modules/habits/lib/schedule-blocks'
@@ -86,8 +91,19 @@ export function DayView({ initialDate, viewFilter = 'todos' }: DayViewProps) {
     const { data: habitItems, isLoading } = useHabitsForDate(date)
     const { data: eventItems } = useEventsForDate(date)
     const { data: projectItems } = useProjectsDueOn(date)
+    const { data: exceptions } = useScheduleExceptionsInRange(dateKey, dateKey)
     const setHabitLogMutation = useSetHabitLog(dateKey)
     const { data: monthData } = useMonthData(monthAnchor)
+
+    const [pendingReschedule, setPendingReschedule] = useState<{
+        habit: Habit
+        dayOfWeek: number
+        duracionMinutos: number | null
+        newHora: string
+    } | null>(null)
+    const upsertExceptionMutation = useUpsertScheduleException()
+    const rescheduleForeverMutation = useRescheduleRecurrenteForever()
+    const rescheduleUnicoMutation = useRescheduleUnico()
 
     const items = showHabits(viewFilter) ? habitItems : []
     const events = showEvents(viewFilter) ? eventItems : []
@@ -98,10 +114,24 @@ export function DayView({ initialDate, viewFilter = 'todos' }: DayViewProps) {
         setMonthAnchor(d)
     }
 
-    const itemsWithBlocks = (items ?? []).map((item: HabitOnDateItem) => ({
-        item,
-        blocks: getBlocksForDate(item.habit, date)
-    }))
+    function handleDragReschedule(habit: Habit, duracionMinutos: number | null, newHora: string) {
+        if (habit.tipo !== 'diario_recurrente') {
+            rescheduleUnicoMutation.mutate({ habit, newHora })
+            return
+        }
+        setPendingReschedule({ habit, dayOfWeek: date.getDay(), duracionMinutos, newHora })
+    }
+
+    const exceptionByHabitId = new Map((exceptions ?? []).map(exc => [exc.habitId, exc]))
+    const itemsWithBlocks = (items ?? []).map((item: HabitOnDateItem) => {
+        const exception = item.habit.tipo === 'diario_recurrente' ? exceptionByHabitId.get(item.habit.id) : undefined
+        return {
+            item,
+            blocks: exception
+                ? [{ hora: exception.hora, duracionMinutos: exception.duracionMinutos }]
+                : getBlocksForDate(item.habit, date)
+        }
+    })
     const unscheduled = itemsWithBlocks.filter(({ blocks }) => blocks.length === 0).map(({ item }) => item)
 
     const laidOut = layoutOverlaps(
@@ -214,6 +244,10 @@ export function DayView({ initialDate, viewFilter = 'todos' }: DayViewProps) {
                                                 estado: newEstado
                                             })
                                         }
+                                        draggable
+                                        onDragReschedule={newHora =>
+                                            handleDragReschedule(slot.item.habit, slot.duracionMinutos, newHora)
+                                        }
                                     />
                                 ))
                             }
@@ -221,6 +255,37 @@ export function DayView({ initialDate, viewFilter = 'todos' }: DayViewProps) {
                     />
                 </div>
             </div>
+
+            {pendingReschedule && (
+                <RescheduleConfirmDialog
+                    habitNombre={pendingReschedule.habit.nombre}
+                    dayOfWeek={pendingReschedule.dayOfWeek}
+                    newHora={pendingReschedule.newHora}
+                    pending={upsertExceptionMutation.isPending || rescheduleForeverMutation.isPending}
+                    onCancel={() => setPendingReschedule(null)}
+                    onOnlyToday={() =>
+                        upsertExceptionMutation.mutate(
+                            {
+                                habitId: pendingReschedule.habit.id,
+                                fecha: dateKey,
+                                hora: pendingReschedule.newHora,
+                                duracionMinutos: pendingReschedule.duracionMinutos
+                            },
+                            { onSuccess: () => setPendingReschedule(null) }
+                        )
+                    }
+                    onForever={() =>
+                        rescheduleForeverMutation.mutate(
+                            {
+                                habit: pendingReschedule.habit,
+                                dayOfWeek: pendingReschedule.dayOfWeek,
+                                newHora: pendingReschedule.newHora
+                            },
+                            { onSuccess: () => setPendingReschedule(null) }
+                        )
+                    }
+                />
+            )}
         </div>
     )
 }

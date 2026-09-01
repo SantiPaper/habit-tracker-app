@@ -1,6 +1,7 @@
-import type { CSSProperties } from 'react'
+import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react'
+import { useRef, useState } from 'react'
 
-import type { BlockGeometry } from '../lib/time-grid'
+import { GRID_END_HOUR, GRID_START_HOUR, minutesToHora, parseHoraToMinutes, type BlockGeometry } from '../lib/time-grid'
 
 import { EstadoToggle } from '@/components/estado-toggle'
 import { useFlashOnTrue } from '@/lib/hooks/use-flash-on-true'
@@ -30,7 +31,15 @@ interface HabitBlockProps {
     isToday?: boolean
     /** Todos los bloques de hoy del hábito (no solo este) — para que la alerta de atrasado mire el último del día. */
     blocksToday?: ScheduleSlot[]
+    /** Habilita arrastrar verticalmente para cambiar la hora — solo lo pasa Día (variant `full`). */
+    draggable?: boolean
+    /** Se llama al soltar, con la hora nueva ya redondeada a 15 min — no persiste nada por sí solo. */
+    onDragReschedule?: (newHora: string) => void
 }
+
+const DRAG_SNAP_MIN = 15
+/** Un arrastre más chico que esto se descarta como "no fue intencional" (click tembloroso). */
+const DRAG_THRESHOLD_PX = 8
 
 /** Un hábito posicionado dentro de la grilla horaria, según `geometry` (top/alto) y la columna que le tocó si se solapa con otro. */
 export function HabitBlock({
@@ -44,7 +53,9 @@ export function HabitBlock({
     variant,
     onChange,
     isToday,
-    blocksToday
+    blocksToday,
+    draggable,
+    onDragReschedule
 }: HabitBlockProps) {
     const flashing = useFlashOnTrue(estado === 'cumplido')
     const now = useNow()
@@ -54,6 +65,41 @@ export function HabitBlock({
     const height = Math.max(geometry.heightPx, minHeight)
     const widthPercent = 100 / columnCount
 
+    const [dragOffsetPx, setDragOffsetPx] = useState(0)
+    const [dragging, setDragging] = useState(false)
+    const dragStartYRef = useRef<number | null>(null)
+
+    function handlePointerDown(e: ReactPointerEvent<HTMLDivElement>) {
+        if (!draggable) return
+        // No arrancar un arrastre si el click empezó en un botón de adentro (EstadoToggle) — ese ya tiene su propio click.
+        if ((e.target as HTMLElement).closest('button')) return
+        dragStartYRef.current = e.clientY
+        setDragging(true)
+        e.currentTarget.setPointerCapture(e.pointerId)
+    }
+
+    function handlePointerMove(e: ReactPointerEvent<HTMLDivElement>) {
+        if (dragStartYRef.current === null) return
+        const rawDelta = e.clientY - dragStartYRef.current
+        setDragOffsetPx(Math.round(rawDelta / DRAG_SNAP_MIN) * DRAG_SNAP_MIN)
+    }
+
+    function handlePointerUp() {
+        if (dragStartYRef.current === null) return
+        const finalOffset = dragOffsetPx
+        dragStartYRef.current = null
+        setDragging(false)
+        setDragOffsetPx(0)
+
+        if (Math.abs(finalOffset) < DRAG_THRESHOLD_PX || !onDragReschedule) return
+
+        // 1px de la grilla = 1 minuto (ver time-grid.ts) — el delta de arrastre ya viene snappeado a 15.
+        const minMinutes = GRID_START_HOUR * 60
+        const maxMinutes = GRID_END_HOUR * 60 - (duracionMinutos ?? DRAG_SNAP_MIN)
+        const newStartMin = Math.min(maxMinutes, Math.max(minMinutes, parseHoraToMinutes(hora) + finalOffset))
+        onDragReschedule(minutesToHora(newStartMin))
+    }
+
     const wrapperStyle: CSSProperties = {
         position: 'absolute',
         top: geometry.topPx,
@@ -61,7 +107,10 @@ export function HabitBlock({
         left: `${widthPercent * column}%`,
         width: `${widthPercent}%`,
         boxSizing: 'border-box',
-        padding: '0 2px'
+        padding: '0 2px',
+        transform: dragOffsetPx ? `translateY(${dragOffsetPx}px)` : undefined,
+        zIndex: dragging ? 10 : undefined,
+        touchAction: draggable ? 'none' : undefined
     }
 
     if (variant === 'compact') {
@@ -98,9 +147,15 @@ export function HabitBlock({
     const alertColor = importanciaColors?.alta
 
     return (
-        <div style={wrapperStyle}>
+        <div
+            style={wrapperStyle}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerUp}
+        >
             <div
-                className={`flex h-full w-full items-center justify-between gap-3 overflow-hidden rounded-lg border border-l-4 px-3 py-1.5 ${ESTADO_BLOCK_STYLE[estado ?? 'null']} ${flashing ? 'spark-pulse' : ''} ${overdue ? 'importance-alert-pulse' : ''}`}
+                className={`flex h-full w-full items-center justify-between gap-3 overflow-hidden rounded-lg border border-l-4 px-3 py-1.5 ${draggable ? 'cursor-grab active:cursor-grabbing' : ''} ${ESTADO_BLOCK_STYLE[estado ?? 'null']} ${flashing ? 'spark-pulse' : ''} ${overdue ? 'importance-alert-pulse' : ''}`}
                 style={
                     {
                         ...(habit.color ? { borderLeftColor: habit.color } : undefined),

@@ -22,23 +22,31 @@ import {
     type AgendaViewFilter
 } from '@/modules/calendar/types/agenda-view-filter'
 import { useEventsInRange } from '@/modules/events/hooks/use-events-in-range'
+import { useScheduleExceptionsInRange } from '@/modules/habits/hooks/use-schedule-exceptions-in-range'
 import { getBlocksForDate } from '@/modules/habits/lib/schedule-blocks'
+import type { HabitScheduleException } from '@/modules/habits/services/habit-schedule-exception.service'
 import { useProjectsDueInRange } from '@/modules/projects/hooks/use-projects-due-in-range'
 
 interface WeekDayGridColumnProps {
     date: Date
     items: CalendarDayItem[]
+    exceptionByHabitId: Map<string, HabitScheduleException>
 }
 
-function WeekDayGridColumn({ date, items }: WeekDayGridColumnProps) {
+function WeekDayGridColumn({ date, items, exceptionByHabitId }: WeekDayGridColumnProps) {
     const laidOut = layoutOverlaps(
-        items.flatMap(item =>
-            getBlocksForDate(item.habit, date).map(block => {
+        items.flatMap(item => {
+            const exception =
+                item.habit.tipo === 'diario_recurrente' ? exceptionByHabitId.get(item.habit.id) : undefined
+            const blocks = exception
+                ? [{ hora: exception.hora, duracionMinutos: exception.duracionMinutos }]
+                : getBlocksForDate(item.habit, date)
+            return blocks.map(block => {
                 const startMin = parseHoraToMinutes(block.hora)
                 const endMin = startMin + (block.duracionMinutos ?? DEFAULT_VISUAL_DURATION_MIN)
                 return { item, hora: block.hora, duracionMinutos: block.duracionMinutos, startMin, endMin }
             })
-        )
+        })
     )
 
     return (
@@ -73,6 +81,7 @@ export function WeekView({ onSelectDay, viewFilter = 'todos' }: WeekViewProps) {
     const todayKey = toDateKey(new Date())
     const { data: events } = useEventsInRange(toDateKey(days[0]), toDateKey(days[days.length - 1]))
     const { data: projects } = useProjectsDueInRange(toDateKey(days[0]), toDateKey(days[days.length - 1]))
+    const { data: exceptions } = useScheduleExceptionsInRange(toDateKey(days[0]), toDateKey(days[days.length - 1]))
 
     const dayEntries = days.map(date => {
         const dateKey = toDateKey(date)
@@ -81,7 +90,10 @@ export function WeekView({ onSelectDay, viewFilter = 'todos' }: WeekViewProps) {
             dateKey,
             items: showHabits(viewFilter) ? (data?.get(dateKey) ?? []) : [],
             events: showEvents(viewFilter) ? (events?.filter(event => event.fecha === dateKey) ?? []) : [],
-            projects: showProjects(viewFilter) ? (projects?.filter(project => project.deadline === dateKey) ?? []) : []
+            projects: showProjects(viewFilter) ? (projects?.filter(project => project.deadline === dateKey) ?? []) : [],
+            exceptionByHabitId: new Map(
+                (exceptions ?? []).filter(exc => exc.fecha === dateKey).map(exc => [exc.habitId, exc])
+            )
         }
     })
 
@@ -116,7 +128,7 @@ export function WeekView({ onSelectDay, viewFilter = 'todos' }: WeekViewProps) {
                     <UnscheduledStrip days={dayEntries} />
 
                     <TimeGridShell
-                        columns={dayEntries.map(({ date, dateKey, items }) => ({
+                        columns={dayEntries.map(({ date, dateKey, items, exceptionByHabitId }) => ({
                             key: dateKey,
                             isToday: dateKey === todayKey,
                             header: (
@@ -136,7 +148,9 @@ export function WeekView({ onSelectDay, viewFilter = 'todos' }: WeekViewProps) {
                                 </button>
                             ),
                             onSelect: () => onSelectDay(date),
-                            children: <WeekDayGridColumn date={date} items={items} />
+                            children: (
+                                <WeekDayGridColumn date={date} items={items} exceptionByHabitId={exceptionByHabitId} />
+                            )
                         }))}
                     />
                 </>

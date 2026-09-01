@@ -10,6 +10,7 @@ export interface Database {
     event: EventTable
     project: ProjectTable
     habit_streak_freeze: HabitStreakFreezeTable
+    habit_schedule_exception: HabitScheduleExceptionTable
 }
 
 export interface HabitTable {
@@ -93,4 +94,14 @@ export interface HabitStreakFreezeTable {
     earned_at: ColumnType<string, string | undefined, never>
     consumed_periodo: string | null
     consumed_at: string | null
+}
+
+export interface HabitScheduleExceptionTable {
+    id: string
+    habit_id: string
+    fecha: string
+    hora: string
+    duracion_minutos: number | null
+    created_at: ColumnType<string, string | undefined, never>
+    updated_at: ColumnType<string, string | undefined, string>
 }

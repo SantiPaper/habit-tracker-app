@@ -13,6 +13,14 @@ export function parseHoraToMinutes(hora: string): number {
     return h * 60 + m
 }
 
+/** Inverso de `parseHoraToMinutes` — usado al convertir un arrastre (delta en px = delta en min) de vuelta a `"HH:MM"`. */
+export function minutesToHora(totalMinutes: number): string {
+    const clamped = Math.max(0, Math.min(23 * 60 + 59, totalMinutes))
+    const h = Math.floor(clamped / 60)
+    const m = clamped % 60
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`
+}
+
 export interface BlockGeometry {
     topPx: number
     heightPx: number

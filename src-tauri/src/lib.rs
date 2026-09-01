@@ -63,6 +63,12 @@ pub fn run() {
             sql: include_str!("../migrations/0010_add_streak_freeze.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 11,
+            description: "add habit_schedule_exception table",
+            sql: include_str!("../migrations/0011_add_schedule_exceptions.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()
