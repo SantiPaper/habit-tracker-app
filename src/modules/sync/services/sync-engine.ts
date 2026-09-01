@@ -8,6 +8,7 @@ import {
 import { pullChanges, pushChanges } from './sync-api.service'
 
 import { useSessionStore } from '@/modules/account/store/session-store'
+import { useSyncStatusStore } from '@/modules/sync/store/sync-status-store'
 
 let syncing = false
 
@@ -34,8 +35,12 @@ export async function runSyncTick(): Promise<void> {
         const remote = await pullChanges(cursor)
         await applyRemoteChanges(remote)
         await setSyncCursor(remote.syncedAt)
-    } catch {
-        // sin conexión, servidor caído, etc. — se reintenta en el próximo tick
+        useSyncStatusStore.getState().setSuccess()
+    } catch (error) {
+        // sin conexión, servidor caído, etc. — se reintenta solo en el próximo tick, pero queda
+        // registrado para que la UI pueda avisar si esto se sostiene en el tiempo (ver
+        // sync-status-store.ts) en vez de fallar en silencio indefinidamente.
+        useSyncStatusStore.getState().setError(error instanceof Error ? error.message : String(error))
     } finally {
         syncing = false
     }

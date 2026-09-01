@@ -4,6 +4,7 @@ import { useSessionStore } from '@/modules/account/store/session-store'
 import { ImportanciaColorsSettings } from '@/modules/profile/components/importancia-colors-settings'
 import { LevelHero } from '@/modules/profile/components/level-hero'
 import { NextMilestonesList } from '@/modules/profile/components/next-milestones-list'
+import { SyncStatusBadge } from '@/modules/sync/components/sync-status-badge'
 
 export function ProfilePage() {
     const session = useSessionStore(state => state.session)
@@ -42,6 +43,8 @@ export function ProfilePage() {
                     </button>
                 </div>
             )}
+
+            {hydrated && session && <SyncStatusBadge />}
 
             {hydrated && session && (
                 <>
