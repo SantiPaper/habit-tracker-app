@@ -15,6 +15,12 @@ import {
     layoutOverlaps,
     parseHoraToMinutes
 } from '@/modules/calendar/lib/time-grid'
+import {
+    showEvents,
+    showHabits,
+    showProjects,
+    type AgendaViewFilter
+} from '@/modules/calendar/types/agenda-view-filter'
 import { useEventsInRange } from '@/modules/events/hooks/use-events-in-range'
 import { getBlocksForDate } from '@/modules/habits/lib/schedule-blocks'
 import { useProjectsDueInRange } from '@/modules/projects/hooks/use-projects-due-in-range'
@@ -56,10 +62,11 @@ function WeekDayGridColumn({ date, items }: WeekDayGridColumnProps) {
 
 interface WeekViewProps {
     onSelectDay: (date: Date) => void
+    viewFilter?: AgendaViewFilter
 }
 
 /** Vista Semana: solo de lectura — clickear el encabezado de un día lleva a la vista Día de esa fecha. */
-export function WeekView({ onSelectDay }: WeekViewProps) {
+export function WeekView({ onSelectDay, viewFilter = 'todos' }: WeekViewProps) {
     const [weekAnchor, setWeekAnchor] = useState(() => new Date())
     const { data, isLoading } = useWeekData(weekAnchor)
     const days = getWeekDays(weekAnchor)
@@ -72,9 +79,9 @@ export function WeekView({ onSelectDay }: WeekViewProps) {
         return {
             date,
             dateKey,
-            items: data?.get(dateKey) ?? [],
-            events: events?.filter(event => event.fecha === dateKey) ?? [],
-            projects: projects?.filter(project => project.deadline === dateKey) ?? []
+            items: showHabits(viewFilter) ? (data?.get(dateKey) ?? []) : [],
+            events: showEvents(viewFilter) ? (events?.filter(event => event.fecha === dateKey) ?? []) : [],
+            projects: showProjects(viewFilter) ? (projects?.filter(project => project.deadline === dateKey) ?? []) : []
         }
     })
 

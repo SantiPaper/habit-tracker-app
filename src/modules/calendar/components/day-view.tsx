@@ -17,6 +17,12 @@ import {
     layoutOverlaps,
     parseHoraToMinutes
 } from '@/modules/calendar/lib/time-grid'
+import {
+    showEvents,
+    showHabits,
+    showProjects,
+    type AgendaViewFilter
+} from '@/modules/calendar/types/agenda-view-filter'
 import type { HabitOnDateItem } from '@/modules/daily/hooks/use-habits-for-date'
 import { useHabitsForDate } from '@/modules/daily/hooks/use-habits-for-date'
 import { useSetHabitLog } from '@/modules/daily/hooks/use-set-habit-log'
@@ -68,19 +74,24 @@ function UnscheduledChip({ habit, estado, isToday, onToggle }: UnscheduledChipPr
 interface DayViewProps {
     /** Fecha con la que arranca la vista — cuando se navega acá desde Semana/Mes. Por defecto, hoy. */
     initialDate?: Date
+    viewFilter?: AgendaViewFilter
 }
 
-export function DayView({ initialDate }: DayViewProps) {
+export function DayView({ initialDate, viewFilter = 'todos' }: DayViewProps) {
     const [date, setDate] = useState(() => initialDate ?? new Date())
     const [monthAnchor, setMonthAnchor] = useState(() => initialDate ?? new Date())
     const dateKey = toDateKey(date)
     const todayKey = toDateKey(new Date())
 
-    const { data: items, isLoading } = useHabitsForDate(date)
-    const { data: events } = useEventsForDate(date)
-    const { data: projects } = useProjectsDueOn(date)
+    const { data: habitItems, isLoading } = useHabitsForDate(date)
+    const { data: eventItems } = useEventsForDate(date)
+    const { data: projectItems } = useProjectsDueOn(date)
     const setHabitLogMutation = useSetHabitLog(dateKey)
     const { data: monthData } = useMonthData(monthAnchor)
+
+    const items = showHabits(viewFilter) ? habitItems : []
+    const events = showEvents(viewFilter) ? eventItems : []
+    const projects = showProjects(viewFilter) ? projectItems : []
 
     const goToDate = (d: Date) => {
         setDate(d)

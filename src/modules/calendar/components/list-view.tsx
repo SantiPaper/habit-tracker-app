@@ -6,6 +6,12 @@ import { MonthCalendar } from './month-calendar'
 
 import { toDateKey } from '@/lib/date/period'
 import { useMonthData } from '@/modules/calendar/hooks/use-month-data'
+import {
+    showEvents,
+    showHabits,
+    showProjects,
+    type AgendaViewFilter
+} from '@/modules/calendar/types/agenda-view-filter'
 import { DailyCheckoffItem } from '@/modules/daily/components/daily-checkoff-item'
 import { useHabitsForDate } from '@/modules/daily/hooks/use-habits-for-date'
 import { useSetHabitLog } from '@/modules/daily/hooks/use-set-habit-log'
@@ -20,7 +26,11 @@ import { useProjectsDueOn } from '@/modules/projects/hooks/use-projects-due-on'
  * solo tildar sin pensar en horarios. Suma de vuelta el calendario chico flotante para saltar
  * de día con un click, además de las flechas anterior/siguiente.
  */
-export function ListView() {
+interface ListViewProps {
+    viewFilter?: AgendaViewFilter
+}
+
+export function ListView({ viewFilter = 'todos' }: ListViewProps) {
     const [date, setDate] = useState(() => new Date())
     const [monthAnchor, setMonthAnchor] = useState(() => new Date())
     const dateKey = toDateKey(date)
@@ -79,29 +89,31 @@ export function ListView() {
                     <p className='text-text-muted'>No había nada programado este día.</p>
                 )}
 
-                {((events && events.length > 0) || (projects && projects.length > 0)) && (
+                {((showEvents(viewFilter) && events && events.length > 0) ||
+                    (showProjects(viewFilter) && projects && projects.length > 0)) && (
                     <div className='flex flex-col gap-1.5'>
-                        {events?.map(event => (
-                            <EventChip key={event.id} event={event} />
-                        ))}
-                        {projects?.map(project => (
-                            <ProjectChip key={project.id} project={project} />
-                        ))}
+                        {showEvents(viewFilter) && events?.map(event => <EventChip key={event.id} event={event} />)}
+                        {showProjects(viewFilter) &&
+                            projects?.map(project => <ProjectChip key={project.id} project={project} />)}
                     </div>
                 )}
 
-                <div className='flex flex-col gap-2.5'>
-                    {items?.map(({ habit, estado }) => (
-                        <DailyCheckoffItem
-                            key={habit.id}
-                            habit={habit}
-                            estado={estado}
-                            blocks={getBlocksForDate(habit, date)}
-                            isToday={dateKey === todayKey}
-                            onChange={newEstado => setHabitLogMutation.mutate({ habitId: habit.id, estado: newEstado })}
-                        />
-                    ))}
-                </div>
+                {showHabits(viewFilter) && (
+                    <div className='flex flex-col gap-2.5'>
+                        {items?.map(({ habit, estado }) => (
+                            <DailyCheckoffItem
+                                key={habit.id}
+                                habit={habit}
+                                estado={estado}
+                                blocks={getBlocksForDate(habit, date)}
+                                isToday={dateKey === todayKey}
+                                onChange={newEstado =>
+                                    setHabitLogMutation.mutate({ habitId: habit.id, estado: newEstado })
+                                }
+                            />
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     )

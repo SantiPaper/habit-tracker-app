@@ -5,6 +5,7 @@ import { DayView } from '@/modules/calendar/components/day-view'
 import { ListView } from '@/modules/calendar/components/list-view'
 import { MonthView } from '@/modules/calendar/components/month-view'
 import { WeekView } from '@/modules/calendar/components/week-view'
+import { AGENDA_VIEW_FILTERS, type AgendaViewFilter } from '@/modules/calendar/types/agenda-view-filter'
 import { EventDialog } from '@/modules/events/components/event-dialog'
 import { useEventDialogStore } from '@/modules/events/store/event-dialog-store'
 import { ProjectDialog } from '@/modules/projects/components/project-dialog'
@@ -22,6 +23,7 @@ const SUB_TABS: { id: AgendaSubTab; label: string }[] = [
 export function AgendaPage() {
     const [subTab, setSubTab] = useState<AgendaSubTab>('dia')
     const [dayTarget, setDayTarget] = useState<Date>(() => new Date())
+    const [viewFilter, setViewFilter] = useState<AgendaViewFilter>('todos')
     const openCreateEvent = useEventDialogStore(state => state.openCreate)
     const openCreateProject = useProjectDialogStore(state => state.openCreate)
 
@@ -55,6 +57,23 @@ export function AgendaPage() {
                     ))}
                 </div>
 
+                <div className='border-border flex gap-1 rounded-full border p-0.5'>
+                    {AGENDA_VIEW_FILTERS.map(filter => (
+                        <button
+                            key={filter.id}
+                            type='button'
+                            onClick={() => setViewFilter(filter.id)}
+                            className={`rounded-full px-3 py-1 font-mono text-[11px] font-bold tracking-wider uppercase transition-colors ${
+                                viewFilter === filter.id
+                                    ? 'bg-accent text-accent-ink'
+                                    : 'text-text-muted hover:text-text'
+                            }`}
+                        >
+                            {filter.label}
+                        </button>
+                    ))}
+                </div>
+
                 <div className='flex gap-1.5'>
                     <button
                         type='button'
@@ -73,10 +92,10 @@ export function AgendaPage() {
                 </div>
             </div>
 
-            {subTab === 'lista' && <ListView />}
-            {subTab === 'dia' && <DayView key={toDateKey(dayTarget)} initialDate={dayTarget} />}
-            {subTab === 'semana' && <WeekView onSelectDay={goToDay} />}
-            {subTab === 'mes' && <MonthView onSelectDay={goToDay} />}
+            {subTab === 'lista' && <ListView viewFilter={viewFilter} />}
+            {subTab === 'dia' && <DayView key={toDateKey(dayTarget)} initialDate={dayTarget} viewFilter={viewFilter} />}
+            {subTab === 'semana' && <WeekView onSelectDay={goToDay} viewFilter={viewFilter} />}
+            {subTab === 'mes' && <MonthView onSelectDay={goToDay} viewFilter={viewFilter} />}
 
             <EventDialog />
             <ProjectDialog />

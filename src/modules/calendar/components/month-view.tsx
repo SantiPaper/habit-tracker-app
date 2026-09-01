@@ -7,6 +7,12 @@ import { useMonthData } from '../hooks/use-month-data'
 import { getMonthGridDays } from '../lib/month-grid'
 
 import { toDateKey } from '@/lib/date/period'
+import {
+    showEvents,
+    showHabits,
+    showProjects,
+    type AgendaViewFilter
+} from '@/modules/calendar/types/agenda-view-filter'
 import { EventChip } from '@/modules/events/components/event-chip'
 import { useEventsInRange } from '@/modules/events/hooks/use-events-in-range'
 import type { Event } from '@/modules/events/types/event.types'
@@ -86,10 +92,11 @@ function MonthDayCell({ date, items, events, projects, inMonth, isToday, onSelec
 
 interface MonthViewProps {
     onSelectDay: (date: Date) => void
+    viewFilter?: AgendaViewFilter
 }
 
 /** Vista Mes: calendario grande, solo de lectura — pasás el mouse sobre un día y lo clickeás para ir a la vista Día de esa fecha. */
-export function MonthView({ onSelectDay }: MonthViewProps) {
+export function MonthView({ onSelectDay, viewFilter = 'todos' }: MonthViewProps) {
     const [monthAnchor, setMonthAnchor] = useState(new Date())
     const { data, isLoading, error } = useMonthData(monthAnchor)
     const days = getMonthGridDays(monthAnchor)
@@ -97,16 +104,20 @@ export function MonthView({ onSelectDay }: MonthViewProps) {
     const { data: events } = useEventsInRange(toDateKey(days[0]), toDateKey(days[days.length - 1]))
     const { data: projects } = useProjectsDueInRange(toDateKey(days[0]), toDateKey(days[days.length - 1]))
     const eventsByDate = new Map<string, Event[]>()
-    for (const event of events ?? []) {
-        const list = eventsByDate.get(event.fecha)
-        if (list) list.push(event)
-        else eventsByDate.set(event.fecha, [event])
+    if (showEvents(viewFilter)) {
+        for (const event of events ?? []) {
+            const list = eventsByDate.get(event.fecha)
+            if (list) list.push(event)
+            else eventsByDate.set(event.fecha, [event])
+        }
     }
     const projectsByDate = new Map<string, Project[]>()
-    for (const project of projects ?? []) {
-        const list = projectsByDate.get(project.deadline)
-        if (list) list.push(project)
-        else projectsByDate.set(project.deadline, [project])
+    if (showProjects(viewFilter)) {
+        for (const project of projects ?? []) {
+            const list = projectsByDate.get(project.deadline)
+            if (list) list.push(project)
+            else projectsByDate.set(project.deadline, [project])
+        }
     }
 
     return (
@@ -153,7 +164,7 @@ export function MonthView({ onSelectDay }: MonthViewProps) {
                             <MonthDayCell
                                 key={dateKey}
                                 date={day}
-                                items={data.get(dateKey) ?? []}
+                                items={showHabits(viewFilter) ? (data.get(dateKey) ?? []) : []}
                                 events={eventsByDate.get(dateKey) ?? []}
                                 projects={projectsByDate.get(dateKey) ?? []}
                                 inMonth={isSameMonth(day, monthAnchor)}
