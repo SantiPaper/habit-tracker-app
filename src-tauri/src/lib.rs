@@ -45,6 +45,12 @@ pub fn run() {
             sql: include_str!("../migrations/0007_add_sync_tombstones.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 8,
+            description: "add event table",
+            sql: include_str!("../migrations/0008_add_events.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()

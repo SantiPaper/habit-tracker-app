@@ -15,6 +15,7 @@ import {
     layoutOverlaps,
     parseHoraToMinutes
 } from '@/modules/calendar/lib/time-grid'
+import { useEventsInRange } from '@/modules/events/hooks/use-events-in-range'
 import { getBlocksForDate } from '@/modules/habits/lib/schedule-blocks'
 
 interface WeekDayGridColumnProps {
@@ -62,10 +63,16 @@ export function WeekView({ onSelectDay }: WeekViewProps) {
     const { data, isLoading } = useWeekData(weekAnchor)
     const days = getWeekDays(weekAnchor)
     const todayKey = toDateKey(new Date())
+    const { data: events } = useEventsInRange(toDateKey(days[0]), toDateKey(days[days.length - 1]))
 
     const dayEntries = days.map(date => {
         const dateKey = toDateKey(date)
-        return { date, dateKey, items: data?.get(dateKey) ?? [] }
+        return {
+            date,
+            dateKey,
+            items: data?.get(dateKey) ?? [],
+            events: events?.filter(event => event.fecha === dateKey) ?? []
+        }
     })
 
     return (

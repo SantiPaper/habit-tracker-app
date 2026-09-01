@@ -9,6 +9,8 @@ import { useMonthData } from '@/modules/calendar/hooks/use-month-data'
 import { DailyCheckoffItem } from '@/modules/daily/components/daily-checkoff-item'
 import { useHabitsForDate } from '@/modules/daily/hooks/use-habits-for-date'
 import { useSetHabitLog } from '@/modules/daily/hooks/use-set-habit-log'
+import { EventChip } from '@/modules/events/components/event-chip'
+import { useEventsForDate } from '@/modules/events/hooks/use-events-for-date'
 import { getBlocksForDate } from '@/modules/habits/lib/schedule-blocks'
 
 /**
@@ -23,6 +25,7 @@ export function ListView() {
     const todayKey = toDateKey(new Date())
 
     const { data: items, isLoading } = useHabitsForDate(date)
+    const { data: events } = useEventsForDate(date)
     const setHabitLogMutation = useSetHabitLog(dateKey)
     const { data: monthData } = useMonthData(monthAnchor)
 
@@ -69,8 +72,16 @@ export function ListView() {
                 </div>
 
                 {isLoading && <p className='text-text-muted'>Cargando...</p>}
-                {!isLoading && items?.length === 0 && (
-                    <p className='text-text-muted'>No había hábitos programados este día.</p>
+                {!isLoading && items?.length === 0 && events?.length === 0 && (
+                    <p className='text-text-muted'>No había hábitos ni eventos programados este día.</p>
+                )}
+
+                {events && events.length > 0 && (
+                    <div className='flex flex-col gap-1.5'>
+                        {events.map(event => (
+                            <EventChip key={event.id} event={event} />
+                        ))}
+                    </div>
                 )}
 
                 <div className='flex flex-col gap-2.5'>

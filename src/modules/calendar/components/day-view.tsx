@@ -20,6 +20,8 @@ import {
 import type { HabitOnDateItem } from '@/modules/daily/hooks/use-habits-for-date'
 import { useHabitsForDate } from '@/modules/daily/hooks/use-habits-for-date'
 import { useSetHabitLog } from '@/modules/daily/hooks/use-set-habit-log'
+import { EventChip } from '@/modules/events/components/event-chip'
+import { useEventsForDate } from '@/modules/events/hooks/use-events-for-date'
 import { ESTADO_BLOCK_STYLE, cycleEstado } from '@/modules/habits/lib/estado-display'
 import { isImportanceOverdue } from '@/modules/habits/lib/importance-alert'
 import { getBlocksForDate } from '@/modules/habits/lib/schedule-blocks'
@@ -73,6 +75,7 @@ export function DayView({ initialDate }: DayViewProps) {
     const todayKey = toDateKey(new Date())
 
     const { data: items, isLoading } = useHabitsForDate(date)
+    const { data: events } = useEventsForDate(date)
     const setHabitLogMutation = useSetHabitLog(dateKey)
     const { data: monthData } = useMonthData(monthAnchor)
 
@@ -119,11 +122,14 @@ export function DayView({ initialDate }: DayViewProps) {
             )}
 
             <div className='max-w-4xl min-w-0 flex-1'>
-                {unscheduled.length > 0 && (
+                {(unscheduled.length > 0 || (events && events.length > 0)) && (
                     <div className='fixed top-44 right-8 flex w-64 flex-col gap-2'>
                         <span className='text-text-muted text-xs font-semibold tracking-wider uppercase'>
                             Sin horario
                         </span>
+                        {events?.map(event => (
+                            <EventChip key={event.id} event={event} />
+                        ))}
                         {unscheduled.map(({ habit, estado }) => (
                             <UnscheduledChip
                                 key={habit.id}

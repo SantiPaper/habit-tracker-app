@@ -7,6 +7,9 @@ import { useMonthData } from '../hooks/use-month-data'
 import { getMonthGridDays } from '../lib/month-grid'
 
 import { toDateKey } from '@/lib/date/period'
+import { EventChip } from '@/modules/events/components/event-chip'
+import { useEventsInRange } from '@/modules/events/hooks/use-events-in-range'
+import type { Event } from '@/modules/events/types/event.types'
 import { ESTADO_BLOCK_STYLE } from '@/modules/habits/lib/estado-display'
 
 const DIAS_HEADER = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
@@ -15,27 +18,45 @@ const MAX_VISIBLE_CHIPS = 3
 interface MonthDayCellProps {
     date: Date
     items: CalendarDayItem[]
+    events: Event[]
     inMonth: boolean
     isToday: boolean
     onSelectDay: (date: Date) => void
 }
 
-function MonthDayCell({ date, items, inMonth, isToday, onSelectDay }: MonthDayCellProps) {
-    const visible = items.slice(0, MAX_VISIBLE_CHIPS)
-    const overflow = items.length - visible.length
+function MonthDayCell({ date, items, events, inMonth, isToday, onSelectDay }: MonthDayCellProps) {
+    // Los eventos van primero — son puntuales y menos frecuentes que los hábitos del día, así que
+    // priorizarlos evita que queden ocultos detrás del cupo de +N más.
+    const visibleEvents = events.slice(0, MAX_VISIBLE_CHIPS)
+    const visibleHabits = items.slice(0, Math.max(0, MAX_VISIBLE_CHIPS - visibleEvents.length))
+    const overflow = events.length - visibleEvents.length + (items.length - visibleHabits.length)
 
     return (
-        <button
-            type='button'
+        // No es un <button> (como antes) porque adentro va `EventChip`, que ya es un botón propio
+        // (abre su diálogo de edición) — un botón dentro de otro botón es HTML inválido. En su
+        // lugar, toda la celda navega al clickearla, salvo la franja de eventos (`stopPropagation`).
+        <div
+            role='button'
+            tabIndex={0}
             onClick={() => onSelectDay(date)}
-            className={`border-border hover:bg-surface-2 hover:border-accent/50 flex min-h-[104px] flex-col gap-1 rounded-lg border p-1.5 text-left transition-colors ${inMonth ? '' : 'opacity-40'}`}
+            onKeyDown={e => {
+                if (e.key === 'Enter' || e.key === ' ') onSelectDay(date)
+            }}
+            className={`border-border hover:bg-surface-2 hover:border-accent/50 flex min-h-[104px] cursor-pointer flex-col gap-1 rounded-lg border p-1.5 text-left transition-colors ${inMonth ? '' : 'opacity-40'}`}
         >
             <span className={`font-mono text-xs ${isToday ? 'text-accent font-bold' : 'text-text-muted'}`}>
                 {format(date, 'd')}
             </span>
 
             <div className='flex flex-col gap-1'>
-                {visible.map(({ habit, estado }) => (
+                {visibleEvents.length > 0 && (
+                    <div className='flex flex-col gap-1' onClick={e => e.stopPropagation()}>
+                        {visibleEvents.map(event => (
+                            <EventChip key={event.id} event={event} variant='compact' />
+                        ))}
+                    </div>
+                )}
+                {visibleHabits.map(({ habit, estado }) => (
                     <div
                         key={habit.id}
                         title={habit.nombre}
@@ -47,7 +68,7 @@ function MonthDayCell({ date, items, inMonth, isToday, onSelectDay }: MonthDayCe
                 ))}
                 {overflow > 0 && <span className='text-text-muted px-1 font-mono text-[10px]'>+{overflow} más</span>}
             </div>
-        </button>
+        </div>
     )
 }
 
@@ -61,6 +82,13 @@ export function MonthView({ onSelectDay }: MonthViewProps) {
     const { data, isLoading, error } = useMonthData(monthAnchor)
     const days = getMonthGridDays(monthAnchor)
     const todayKey = toDateKey(new Date())
+    const { data: events } = useEventsInRange(toDateKey(days[0]), toDateKey(days[days.length - 1]))
+    const eventsByDate = new Map<string, Event[]>()
+    for (const event of events ?? []) {
+        const list = eventsByDate.get(event.fecha)
+        if (list) list.push(event)
+        else eventsByDate.set(event.fecha, [event])
+    }
 
     return (
         <div className='flex flex-col gap-4'>
@@ -107,6 +135,7 @@ export function MonthView({ onSelectDay }: MonthViewProps) {
                                 key={dateKey}
                                 date={day}
                                 items={data.get(dateKey) ?? []}
+                                events={eventsByDate.get(dateKey) ?? []}
                                 inMonth={isSameMonth(day, monthAnchor)}
                                 isToday={dateKey === todayKey}
                                 onSelectDay={onSelectDay}

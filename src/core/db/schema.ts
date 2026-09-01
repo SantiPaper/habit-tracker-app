@@ -7,6 +7,7 @@ export interface Database {
     habit_period_claim: HabitPeriodClaimTable
     habit_schedule_block: HabitScheduleBlockTable
     habit_log_tombstone: HabitLogTombstoneTable
+    event: EventTable
 }
 
 export interface HabitTable {
@@ -62,4 +63,13 @@ export interface HabitLogTombstoneTable {
     habit_id: string
     periodo: string
     deleted_at: ColumnType<string, string | undefined, never>
+}
+
+export interface EventTable {
+    id: string
+    nombre: string
+    fecha: string
+    notas: string | null
+    created_at: ColumnType<string, string | undefined, never>
+    updated_at: ColumnType<string, string | undefined, string>
 }
