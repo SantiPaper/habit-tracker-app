@@ -7,6 +7,8 @@ import { useEventDialogStore } from '../store/event-dialog-store'
 import type { Event } from '../types/event.types'
 
 import { DatePickerField } from '@/components/date-picker-field'
+import { RequiresAccountNotice } from '@/modules/account/components/requires-account-notice'
+import { useSessionStore } from '@/modules/account/store/session-store'
 
 /**
  * Diálogo único para crear y editar Eventos — a diferencia de hábitos (`habit-form.tsx` +
@@ -29,6 +31,7 @@ function EventDialogContent({
     target: { mode: 'create'; defaultDate: string } | { mode: 'edit'; event: Event }
     onClose: () => void
 }) {
+    const session = useSessionStore(state => state.session)
     const isEdit = target.mode === 'edit'
     const [nombre, setNombre] = useState(isEdit ? target.event.nombre : '')
     const [fecha, setFecha] = useState(isEdit ? target.event.fecha : target.defaultDate)
@@ -41,6 +44,19 @@ function EventDialogContent({
 
     const saving = createEventMutation.isPending || updateEventMutation.isPending
     const deleting = deleteEventMutation.isPending
+
+    if (!session) {
+        return (
+            <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/60' onClick={onClose}>
+                <div
+                    className='border-border bg-surface w-96 rounded-2xl border p-6'
+                    onClick={e => e.stopPropagation()}
+                >
+                    <RequiresAccountNotice message='Los eventos son exclusivos de tu cuenta — iniciá sesión desde tu Perfil para crear uno.' />
+                </div>
+            </div>
+        )
+    }
 
     async function handleSave() {
         setError(null)

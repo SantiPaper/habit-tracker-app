@@ -8,6 +8,8 @@ import { useProjectDialogStore } from '../store/project-dialog-store'
 import type { Project } from '../types/project.types'
 
 import { DatePickerField } from '@/components/date-picker-field'
+import { RequiresAccountNotice } from '@/modules/account/components/requires-account-notice'
+import { useSessionStore } from '@/modules/account/store/session-store'
 
 /** Diálogo único para crear y editar Proyectos — mismo criterio que `EventDialog`: lo bastante simple como para no justificar un formulario y un diálogo de edición separados. */
 export function ProjectDialog() {
@@ -26,6 +28,7 @@ function ProjectDialogContent({
     target: { mode: 'create'; defaultDeadline: string } | { mode: 'edit'; project: Project }
     onClose: () => void
 }) {
+    const session = useSessionStore(state => state.session)
     const isEdit = target.mode === 'edit'
     const [nombre, setNombre] = useState(isEdit ? target.project.nombre : '')
     const [deadline, setDeadline] = useState(isEdit ? target.project.deadline : target.defaultDeadline)
@@ -40,6 +43,19 @@ function ProjectDialogContent({
     const saving = createProjectMutation.isPending || updateProjectMutation.isPending
     const deleting = deleteProjectMutation.isPending
     const togglingEstado = setEstadoMutation.isPending
+
+    if (!session) {
+        return (
+            <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/60' onClick={onClose}>
+                <div
+                    className='border-border bg-surface w-96 rounded-2xl border p-6'
+                    onClick={e => e.stopPropagation()}
+                >
+                    <RequiresAccountNotice message='Los proyectos son exclusivos de tu cuenta — iniciá sesión desde tu Perfil para crear uno.' />
+                </div>
+            </div>
+        )
+    }
 
     async function handleSave() {
         setError(null)

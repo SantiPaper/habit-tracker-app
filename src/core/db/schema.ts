@@ -77,6 +77,8 @@ export interface EventTable {
     notas: string | null
     created_at: ColumnType<string, string | undefined, never>
     updated_at: ColumnType<string, string | undefined, string>
+    /** Mismo patrón que `HabitTable.owner_user_id` — evita que eventos de una cuenta se vean/editen desde otra en el mismo dispositivo. */
+    owner_user_id: string | null
 }
 
 export interface ProjectTable {
@@ -87,6 +89,8 @@ export interface ProjectTable {
     estado: 'pendiente' | 'hecho'
     created_at: ColumnType<string, string | undefined, never>
     updated_at: ColumnType<string, string | undefined, string>
+    /** Mismo patrón que `HabitTable.owner_user_id`. */
+    owner_user_id: string | null
 }
 
 export interface HabitStreakFreezeTable {
