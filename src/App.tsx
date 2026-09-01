@@ -20,6 +20,7 @@ import { AgendaPage } from '@/pages/agenda-page'
 import { AlertsPage } from '@/pages/alerts-page'
 import { FriendsPage } from '@/pages/friends-page'
 import { HabitsPage } from '@/pages/habits-page'
+import { PerformancePage } from '@/pages/performance-page'
 import { ProfilePage } from '@/pages/profile-page'
 import { SettingsPage } from '@/pages/settings-page'
 import { SummaryPage } from '@/pages/summary-page'
@@ -99,6 +100,26 @@ function AlertsIcon() {
     )
 }
 
+function PerformanceIcon() {
+    return (
+        <svg
+            width='16'
+            height='16'
+            viewBox='0 0 24 24'
+            fill='none'
+            stroke='currentColor'
+            strokeWidth='2'
+            strokeLinecap='round'
+            strokeLinejoin='round'
+        >
+            <rect x='3' y='3' width='7' height='7' rx='1.5' />
+            <rect x='14' y='3' width='7' height='7' rx='1.5' />
+            <rect x='3' y='14' width='7' height='7' rx='1.5' />
+            <rect x='14' y='14' width='7' height='7' rx='1.5' />
+        </svg>
+    )
+}
+
 function FriendsIcon() {
     return (
         <svg
@@ -159,6 +180,7 @@ const TABS: { id: Tab; label: string; Icon: () => JSX.Element }[] = [
     { id: 'habits', label: 'Hábitos', Icon: HabitsIcon },
     { id: 'agenda', label: 'Agenda', Icon: CalendarIcon },
     { id: 'alerts', label: 'Alertas', Icon: AlertsIcon },
+    { id: 'performance', label: 'Rendimiento', Icon: PerformanceIcon },
     { id: 'summary', label: 'Resumen', Icon: SummaryIcon },
     { id: 'friends', label: 'Amigos', Icon: FriendsIcon },
     { id: 'profile', label: 'Perfil', Icon: ProfileIcon },
@@ -211,6 +233,7 @@ function App() {
             {tab === 'habits' && <HabitsPage />}
             {tab === 'agenda' && <AgendaPage />}
             {tab === 'alerts' && <AlertsPage />}
+            {tab === 'performance' && <PerformancePage />}
             {tab === 'summary' && <SummaryPage />}
             {tab === 'friends' && <FriendsPage />}
             {tab === 'profile' && <ProfilePage />}
