@@ -1,4 +1,4 @@
-CREATE TABLE event (
+CREATE TABLE IF NOT EXISTS event (
     id TEXT PRIMARY KEY,
     nombre TEXT NOT NULL,
     fecha TEXT NOT NULL,
@@ -7,4 +7,4 @@ CREATE TABLE event (
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
-CREATE INDEX idx_event_fecha ON event(fecha);
+CREATE INDEX IF NOT EXISTS idx_event_fecha ON event(fecha);

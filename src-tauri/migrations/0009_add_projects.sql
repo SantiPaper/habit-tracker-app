@@ -1,4 +1,4 @@
-CREATE TABLE project (
+CREATE TABLE IF NOT EXISTS project (
     id TEXT PRIMARY KEY,
     nombre TEXT NOT NULL,
     deadline TEXT NOT NULL,
@@ -8,4 +8,4 @@ CREATE TABLE project (
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
-CREATE INDEX idx_project_deadline ON project(deadline);
+CREATE INDEX IF NOT EXISTS idx_project_deadline ON project(deadline);
