@@ -3,8 +3,10 @@ import { es } from 'date-fns/locale'
 import type { CSSProperties } from 'react'
 import { useState } from 'react'
 
+import { EmptySlotHoverLayer } from './empty-slot-hover-layer'
 import { HabitBlock } from './habit-block'
 import { MonthCalendar } from './month-calendar'
+import { QuickCreateHabitDialog } from './quick-create-habit-dialog'
 import { RescheduleConfirmDialog } from './reschedule-confirm-dialog'
 import { TimeGridShell } from './time-grid-shell'
 
@@ -104,6 +106,7 @@ export function DayView({ initialDate, viewFilter = 'todos' }: DayViewProps) {
     const upsertExceptionMutation = useUpsertScheduleException()
     const rescheduleForeverMutation = useRescheduleRecurrenteForever()
     const rescheduleUnicoMutation = useRescheduleUnico()
+    const [quickCreateHora, setQuickCreateHora] = useState<string | null>(null)
 
     const items = showHabits(viewFilter) ? habitItems : []
     const events = showEvents(viewFilter) ? eventItems : []
@@ -225,31 +228,36 @@ export function DayView({ initialDate, viewFilter = 'todos' }: DayViewProps) {
                             {
                                 key: dateKey,
                                 isToday: dateKey === todayKey,
-                                children: laidOut.map(({ item: slot, column, columnCount }, index) => (
-                                    <HabitBlock
-                                        key={`${slot.item.habit.id}-${slot.hora}-${index}`}
-                                        habit={slot.item.habit}
-                                        estado={slot.item.estado}
-                                        hora={slot.hora}
-                                        duracionMinutos={slot.duracionMinutos}
-                                        blocksToday={slot.blocksToday}
-                                        geometry={computeBlockGeometry(slot.hora, slot.duracionMinutos)}
-                                        column={column}
-                                        columnCount={columnCount}
-                                        variant='full'
-                                        isToday={dateKey === todayKey}
-                                        onChange={newEstado =>
-                                            setHabitLogMutation.mutate({
-                                                habitId: slot.item.habit.id,
-                                                estado: newEstado
-                                            })
-                                        }
-                                        draggable
-                                        onDragReschedule={newHora =>
-                                            handleDragReschedule(slot.item.habit, slot.duracionMinutos, newHora)
-                                        }
-                                    />
-                                ))
+                                children: (
+                                    <>
+                                        <EmptySlotHoverLayer onCreateAt={setQuickCreateHora} />
+                                        {laidOut.map(({ item: slot, column, columnCount }, index) => (
+                                            <HabitBlock
+                                                key={`${slot.item.habit.id}-${slot.hora}-${index}`}
+                                                habit={slot.item.habit}
+                                                estado={slot.item.estado}
+                                                hora={slot.hora}
+                                                duracionMinutos={slot.duracionMinutos}
+                                                blocksToday={slot.blocksToday}
+                                                geometry={computeBlockGeometry(slot.hora, slot.duracionMinutos)}
+                                                column={column}
+                                                columnCount={columnCount}
+                                                variant='full'
+                                                isToday={dateKey === todayKey}
+                                                onChange={newEstado =>
+                                                    setHabitLogMutation.mutate({
+                                                        habitId: slot.item.habit.id,
+                                                        estado: newEstado
+                                                    })
+                                                }
+                                                draggable
+                                                onDragReschedule={newHora =>
+                                                    handleDragReschedule(slot.item.habit, slot.duracionMinutos, newHora)
+                                                }
+                                            />
+                                        ))}
+                                    </>
+                                )
                             }
                         ]}
                     />
@@ -284,6 +292,14 @@ export function DayView({ initialDate, viewFilter = 'todos' }: DayViewProps) {
                             { onSuccess: () => setPendingReschedule(null) }
                         )
                     }
+                />
+            )}
+
+            {quickCreateHora && (
+                <QuickCreateHabitDialog
+                    fecha={dateKey}
+                    hora={quickCreateHora}
+                    onClose={() => setQuickCreateHora(null)}
                 />
             )}
         </div>
