@@ -1,4 +1,4 @@
-import type { JSX } from 'react'
+import { lazy, Suspense, type JSX } from 'react'
 
 import { ToastContainer } from '@/components/toast-container'
 import { useNavigationStore, type Tab } from '@/core/stores/navigation-store'
@@ -16,14 +16,18 @@ import { RemindersBanner } from '@/modules/reminders/components/reminders-banner
 import { useHabitReminders } from '@/modules/reminders/hooks/use-habit-reminders'
 import { useSyncEngine } from '@/modules/sync/hooks/use-sync-engine'
 import { UpdateBanner } from '@/modules/update/components/update-banner'
-import { AgendaPage } from '@/pages/agenda-page'
-import { AlertsPage } from '@/pages/alerts-page'
-import { FriendsPage } from '@/pages/friends-page'
-import { HabitsPage } from '@/pages/habits-page'
-import { PerformancePage } from '@/pages/performance-page'
-import { ProfilePage } from '@/pages/profile-page'
-import { SettingsPage } from '@/pages/settings-page'
-import { SummaryPage } from '@/pages/summary-page'
+
+// Cada tab se carga sola, bajo demanda — antes las 8 páginas (+ todo lo que importan) entraban
+// enteras en el bundle inicial aunque solo una esté visible a la vez. Vite arma un chunk aparte por
+// cada import(), no hace falta nada más de configuración.
+const AgendaPage = lazy(() => import('@/pages/agenda-page').then(m => ({ default: m.AgendaPage })))
+const AlertsPage = lazy(() => import('@/pages/alerts-page').then(m => ({ default: m.AlertsPage })))
+const FriendsPage = lazy(() => import('@/pages/friends-page').then(m => ({ default: m.FriendsPage })))
+const HabitsPage = lazy(() => import('@/pages/habits-page').then(m => ({ default: m.HabitsPage })))
+const PerformancePage = lazy(() => import('@/pages/performance-page').then(m => ({ default: m.PerformancePage })))
+const ProfilePage = lazy(() => import('@/pages/profile-page').then(m => ({ default: m.ProfilePage })))
+const SettingsPage = lazy(() => import('@/pages/settings-page').then(m => ({ default: m.SettingsPage })))
+const SummaryPage = lazy(() => import('@/pages/summary-page').then(m => ({ default: m.SummaryPage })))
 
 function HabitsIcon() {
     return (
@@ -230,14 +234,16 @@ function App() {
                 </div>
             </nav>
 
-            {tab === 'habits' && <HabitsPage />}
-            {tab === 'agenda' && <AgendaPage />}
-            {tab === 'alerts' && <AlertsPage />}
-            {tab === 'performance' && <PerformancePage />}
-            {tab === 'summary' && <SummaryPage />}
-            {tab === 'friends' && <FriendsPage />}
-            {tab === 'profile' && <ProfilePage />}
-            {tab === 'settings' && isAdmin(session) && <SettingsPage />}
+            <Suspense fallback={<p className='text-text-muted p-10 text-sm'>Cargando...</p>}>
+                {tab === 'habits' && <HabitsPage />}
+                {tab === 'agenda' && <AgendaPage />}
+                {tab === 'alerts' && <AlertsPage />}
+                {tab === 'performance' && <PerformancePage />}
+                {tab === 'summary' && <SummaryPage />}
+                {tab === 'friends' && <FriendsPage />}
+                {tab === 'profile' && <ProfilePage />}
+                {tab === 'settings' && isAdmin(session) && <SettingsPage />}
+            </Suspense>
 
             {/* Eventos y Proyectos se editan desde Agenda y desde Alertas — un solo diálogo montado
                 acá arriba, en vez de duplicarlo en cada página que los referencia. */}
