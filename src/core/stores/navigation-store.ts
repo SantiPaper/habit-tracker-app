@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-export type Tab = 'habits' | 'summary' | 'agenda' | 'friends' | 'profile' | 'settings'
+export type Tab = 'habits' | 'summary' | 'agenda' | 'alerts' | 'friends' | 'profile' | 'settings'
 
 interface NavigationState {
     tab: Tab

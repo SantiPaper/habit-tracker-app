@@ -6,13 +6,17 @@ import { useHydrateSession } from '@/modules/account/hooks/use-hydrate-session'
 import { useProfileSync } from '@/modules/account/hooks/use-profile-sync'
 import { isAdmin } from '@/modules/account/lib/admin'
 import { useSessionStore } from '@/modules/account/store/session-store'
+import { useAlertNotifications } from '@/modules/alerts/hooks/use-alert-notifications'
+import { EventDialog } from '@/modules/events/components/event-dialog'
 import { XpHud } from '@/modules/gamification/components/xp-hud'
+import { ProjectDialog } from '@/modules/projects/components/project-dialog'
 import { useRealtime } from '@/modules/realtime/hooks/use-realtime'
 import { RemindersBanner } from '@/modules/reminders/components/reminders-banner'
 import { useHabitReminders } from '@/modules/reminders/hooks/use-habit-reminders'
 import { useSyncEngine } from '@/modules/sync/hooks/use-sync-engine'
 import { UpdateBanner } from '@/modules/update/components/update-banner'
 import { AgendaPage } from '@/pages/agenda-page'
+import { AlertsPage } from '@/pages/alerts-page'
 import { FriendsPage } from '@/pages/friends-page'
 import { HabitsPage } from '@/pages/habits-page'
 import { ProfilePage } from '@/pages/profile-page'
@@ -76,6 +80,24 @@ function CalendarIcon() {
     )
 }
 
+function AlertsIcon() {
+    return (
+        <svg
+            width='16'
+            height='16'
+            viewBox='0 0 24 24'
+            fill='none'
+            stroke='currentColor'
+            strokeWidth='2'
+            strokeLinecap='round'
+            strokeLinejoin='round'
+        >
+            <path d='M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9' />
+            <path d='M13.73 21a2 2 0 0 1-3.46 0' />
+        </svg>
+    )
+}
+
 function FriendsIcon() {
     return (
         <svg
@@ -135,6 +157,7 @@ function SettingsIcon() {
 const TABS: { id: Tab; label: string; Icon: () => JSX.Element }[] = [
     { id: 'habits', label: 'Hábitos', Icon: HabitsIcon },
     { id: 'agenda', label: 'Agenda', Icon: CalendarIcon },
+    { id: 'alerts', label: 'Alertas', Icon: AlertsIcon },
     { id: 'summary', label: 'Resumen', Icon: SummaryIcon },
     { id: 'friends', label: 'Amigos', Icon: FriendsIcon },
     { id: 'profile', label: 'Perfil', Icon: ProfileIcon },
@@ -146,6 +169,7 @@ function App() {
     const setTab = useNavigationStore(state => state.setTab)
     const session = useSessionStore(state => state.session)
 
+    useAlertNotifications()
     useHabitReminders()
     useHydrateSession()
     useProfileSync()
@@ -184,10 +208,16 @@ function App() {
 
             {tab === 'habits' && <HabitsPage />}
             {tab === 'agenda' && <AgendaPage />}
+            {tab === 'alerts' && <AlertsPage />}
             {tab === 'summary' && <SummaryPage />}
             {tab === 'friends' && <FriendsPage />}
             {tab === 'profile' && <ProfilePage />}
             {tab === 'settings' && isAdmin(session) && <SettingsPage />}
+
+            {/* Eventos y Proyectos se editan desde Agenda y desde Alertas — un solo diálogo montado
+                acá arriba, en vez de duplicarlo en cada página que los referencia. */}
+            <EventDialog />
+            <ProjectDialog />
 
             <ToastContainer />
             <RemindersBanner />

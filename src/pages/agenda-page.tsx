@@ -6,9 +6,7 @@ import { ListView } from '@/modules/calendar/components/list-view'
 import { MonthView } from '@/modules/calendar/components/month-view'
 import { WeekView } from '@/modules/calendar/components/week-view'
 import { AGENDA_VIEW_FILTERS, type AgendaViewFilter } from '@/modules/calendar/types/agenda-view-filter'
-import { EventDialog } from '@/modules/events/components/event-dialog'
 import { useEventDialogStore } from '@/modules/events/store/event-dialog-store'
-import { ProjectDialog } from '@/modules/projects/components/project-dialog'
 import { useProjectDialogStore } from '@/modules/projects/store/project-dialog-store'
 
 type AgendaSubTab = 'lista' | 'dia' | 'semana' | 'mes'
@@ -96,9 +94,6 @@ export function AgendaPage() {
             {subTab === 'dia' && <DayView key={toDateKey(dayTarget)} initialDate={dayTarget} viewFilter={viewFilter} />}
             {subTab === 'semana' && <WeekView onSelectDay={goToDay} viewFilter={viewFilter} />}
             {subTab === 'mes' && <MonthView onSelectDay={goToDay} viewFilter={viewFilter} />}
-
-            <EventDialog />
-            <ProjectDialog />
         </div>
     )
 }
