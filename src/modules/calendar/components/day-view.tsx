@@ -99,6 +99,7 @@ export function DayView({ initialDate, viewFilter = 'todos' }: DayViewProps) {
 
     const [pendingReschedule, setPendingReschedule] = useState<{
         habit: Habit
+        blockId: string | null
         dayOfWeek: number
         duracionMinutos: number | null
         newHora: string
@@ -117,12 +118,17 @@ export function DayView({ initialDate, viewFilter = 'todos' }: DayViewProps) {
         setMonthAnchor(d)
     }
 
-    function handleDragReschedule(habit: Habit, duracionMinutos: number | null, newHora: string) {
+    function handleDragReschedule(
+        habit: Habit,
+        blockId: string | null,
+        duracionMinutos: number | null,
+        newHora: string
+    ) {
         if (habit.tipo !== 'diario_recurrente') {
             rescheduleUnicoMutation.mutate({ habit, newHora })
             return
         }
-        setPendingReschedule({ habit, dayOfWeek: date.getDay(), duracionMinutos, newHora })
+        setPendingReschedule({ habit, blockId, dayOfWeek: date.getDay(), duracionMinutos, newHora })
     }
 
     const exceptionByHabitId = new Map((exceptions ?? []).map(exc => [exc.habitId, exc]))
@@ -131,7 +137,7 @@ export function DayView({ initialDate, viewFilter = 'todos' }: DayViewProps) {
         return {
             item,
             blocks: exception
-                ? [{ hora: exception.hora, duracionMinutos: exception.duracionMinutos }]
+                ? [{ hora: exception.hora, duracionMinutos: exception.duracionMinutos, blockId: null }]
                 : getBlocksForDate(item.habit, date)
         }
     })
@@ -146,6 +152,7 @@ export function DayView({ initialDate, viewFilter = 'todos' }: DayViewProps) {
                     item,
                     hora: block.hora,
                     duracionMinutos: block.duracionMinutos,
+                    blockId: block.blockId,
                     blocksToday: blocks,
                     startMin,
                     endMin
@@ -252,7 +259,12 @@ export function DayView({ initialDate, viewFilter = 'todos' }: DayViewProps) {
                                                 }
                                                 draggable
                                                 onDragReschedule={newHora =>
-                                                    handleDragReschedule(slot.item.habit, slot.duracionMinutos, newHora)
+                                                    handleDragReschedule(
+                                                        slot.item.habit,
+                                                        slot.blockId,
+                                                        slot.duracionMinutos,
+                                                        newHora
+                                                    )
                                                 }
                                             />
                                         ))}
@@ -286,6 +298,7 @@ export function DayView({ initialDate, viewFilter = 'todos' }: DayViewProps) {
                         rescheduleForeverMutation.mutate(
                             {
                                 habit: pendingReschedule.habit,
+                                blockId: pendingReschedule.blockId,
                                 dayOfWeek: pendingReschedule.dayOfWeek,
                                 newHora: pendingReschedule.newHora
                             },

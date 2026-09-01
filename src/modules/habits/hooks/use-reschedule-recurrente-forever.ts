@@ -10,17 +10,19 @@ import { useToastStore } from '@/core/stores/toast-store'
 
 interface RescheduleForeverInput {
     habit: Habit
+    /** El bloque EXACTO que se arrastró — necesario cuando el hábito tiene más de un bloque el mismo día (ver `splitDayIntoNewTime`). `null` si se arrastró un día ya cubierto por una excepción puntual (caso raro, no rompe nada — solo agrega el horario nuevo sin poder identificar cuál bloque de origen tocar). */
+    blockId: string | null
     dayOfWeek: number
     newHora: string
 }
 
-/** "Para siempre" — separa `dayOfWeek` de cualquier bloque que lo comparta y le da su propio horario nuevo; el resto de los días del patrón queda igual. */
+/** "Para siempre" — separa `dayOfWeek` del bloque arrastrado (no de cualquiera que lo comparta) y le da su propio horario nuevo; el resto de los bloques del patrón queda intacto. */
 export function useRescheduleRecurrenteForever() {
     const queryClient = useQueryClient()
 
     return useMutation({
-        mutationFn: async ({ habit, dayOfWeek, newHora }: RescheduleForeverInput) => {
-            const nextBlocks = splitDayIntoNewTime(habit.scheduleBlocks, dayOfWeek, newHora)
+        mutationFn: async ({ habit, blockId, dayOfWeek, newHora }: RescheduleForeverInput) => {
+            const nextBlocks = splitDayIntoNewTime(habit.scheduleBlocks, blockId, dayOfWeek, newHora)
             const rows = await replaceScheduleBlocksForHabit(habit.id, nextBlocks)
             return rows
         },

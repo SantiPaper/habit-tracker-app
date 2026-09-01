@@ -3,6 +3,8 @@ import type { Habit } from '../types/habit.types'
 export interface ScheduleSlot {
     hora: string
     duracionMinutos: number | null
+    /** El `id` del `HabitScheduleBlock` de origen — `null` para tipos sin bloques reales (usan el `hora` escalar). Necesario para identificar EXACTAMENTE cuál bloque tocar al arrastrar, cuando un hábito tiene más de uno el mismo día (ver `splitDayIntoNewTime`). */
+    blockId: string | null
 }
 
 /**
@@ -14,12 +16,12 @@ export interface ScheduleSlot {
  */
 export function getBlocksForDate(habit: Habit, date: Date): ScheduleSlot[] {
     if (habit.tipo !== 'diario_recurrente') {
-        return habit.hora ? [{ hora: habit.hora, duracionMinutos: habit.duracionMinutos }] : []
+        return habit.hora ? [{ hora: habit.hora, duracionMinutos: habit.duracionMinutos, blockId: null }] : []
     }
 
     const dayOfWeek = date.getDay()
     return habit.scheduleBlocks
         .filter(block => block.diasSemana.includes(dayOfWeek))
-        .map(block => ({ hora: block.hora, duracionMinutos: block.duracionMinutos }))
+        .map(block => ({ hora: block.hora, duracionMinutos: block.duracionMinutos, blockId: block.id }))
         .sort((a, b) => a.hora.localeCompare(b.hora))
 }
