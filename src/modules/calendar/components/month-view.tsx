@@ -11,6 +11,9 @@ import { EventChip } from '@/modules/events/components/event-chip'
 import { useEventsInRange } from '@/modules/events/hooks/use-events-in-range'
 import type { Event } from '@/modules/events/types/event.types'
 import { ESTADO_BLOCK_STYLE } from '@/modules/habits/lib/estado-display'
+import { ProjectChip } from '@/modules/projects/components/project-chip'
+import { useProjectsDueInRange } from '@/modules/projects/hooks/use-projects-due-in-range'
+import type { Project } from '@/modules/projects/types/project.types'
 
 const DIAS_HEADER = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 const MAX_VISIBLE_CHIPS = 3
@@ -19,17 +22,23 @@ interface MonthDayCellProps {
     date: Date
     items: CalendarDayItem[]
     events: Event[]
+    projects: Project[]
     inMonth: boolean
     isToday: boolean
     onSelectDay: (date: Date) => void
 }
 
-function MonthDayCell({ date, items, events, inMonth, isToday, onSelectDay }: MonthDayCellProps) {
-    // Los eventos van primero — son puntuales y menos frecuentes que los hábitos del día, así que
-    // priorizarlos evita que queden ocultos detrás del cupo de +N más.
+function MonthDayCell({ date, items, events, projects, inMonth, isToday, onSelectDay }: MonthDayCellProps) {
+    // Eventos y proyectos van primero — son puntuales y menos frecuentes que los hábitos del día,
+    // así que priorizarlos evita que queden ocultos detrás del cupo de +N más.
     const visibleEvents = events.slice(0, MAX_VISIBLE_CHIPS)
-    const visibleHabits = items.slice(0, Math.max(0, MAX_VISIBLE_CHIPS - visibleEvents.length))
-    const overflow = events.length - visibleEvents.length + (items.length - visibleHabits.length)
+    const visibleProjects = projects.slice(0, Math.max(0, MAX_VISIBLE_CHIPS - visibleEvents.length))
+    const visibleHabits = items.slice(0, Math.max(0, MAX_VISIBLE_CHIPS - visibleEvents.length - visibleProjects.length))
+    const overflow =
+        events.length -
+        visibleEvents.length +
+        (projects.length - visibleProjects.length) +
+        (items.length - visibleHabits.length)
 
     return (
         // No es un <button> (como antes) porque adentro va `EventChip`, que ya es un botón propio
@@ -49,10 +58,13 @@ function MonthDayCell({ date, items, events, inMonth, isToday, onSelectDay }: Mo
             </span>
 
             <div className='flex flex-col gap-1'>
-                {visibleEvents.length > 0 && (
+                {(visibleEvents.length > 0 || visibleProjects.length > 0) && (
                     <div className='flex flex-col gap-1' onClick={e => e.stopPropagation()}>
                         {visibleEvents.map(event => (
                             <EventChip key={event.id} event={event} variant='compact' />
+                        ))}
+                        {visibleProjects.map(project => (
+                            <ProjectChip key={project.id} project={project} variant='compact' />
                         ))}
                     </div>
                 )}
@@ -83,11 +95,18 @@ export function MonthView({ onSelectDay }: MonthViewProps) {
     const days = getMonthGridDays(monthAnchor)
     const todayKey = toDateKey(new Date())
     const { data: events } = useEventsInRange(toDateKey(days[0]), toDateKey(days[days.length - 1]))
+    const { data: projects } = useProjectsDueInRange(toDateKey(days[0]), toDateKey(days[days.length - 1]))
     const eventsByDate = new Map<string, Event[]>()
     for (const event of events ?? []) {
         const list = eventsByDate.get(event.fecha)
         if (list) list.push(event)
         else eventsByDate.set(event.fecha, [event])
+    }
+    const projectsByDate = new Map<string, Project[]>()
+    for (const project of projects ?? []) {
+        const list = projectsByDate.get(project.deadline)
+        if (list) list.push(project)
+        else projectsByDate.set(project.deadline, [project])
     }
 
     return (
@@ -136,6 +155,7 @@ export function MonthView({ onSelectDay }: MonthViewProps) {
                                 date={day}
                                 items={data.get(dateKey) ?? []}
                                 events={eventsByDate.get(dateKey) ?? []}
+                                projects={projectsByDate.get(dateKey) ?? []}
                                 inMonth={isSameMonth(day, monthAnchor)}
                                 isToday={dateKey === todayKey}
                                 onSelectDay={onSelectDay}

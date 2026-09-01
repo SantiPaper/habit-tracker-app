@@ -8,6 +8,7 @@ export interface Database {
     habit_schedule_block: HabitScheduleBlockTable
     habit_log_tombstone: HabitLogTombstoneTable
     event: EventTable
+    project: ProjectTable
 }
 
 export interface HabitTable {
@@ -70,6 +71,16 @@ export interface EventTable {
     nombre: string
     fecha: string
     notas: string | null
+    created_at: ColumnType<string, string | undefined, never>
+    updated_at: ColumnType<string, string | undefined, string>
+}
+
+export interface ProjectTable {
+    id: string
+    nombre: string
+    deadline: string
+    notas: string | null
+    estado: 'pendiente' | 'hecho'
     created_at: ColumnType<string, string | undefined, never>
     updated_at: ColumnType<string, string | undefined, string>
 }

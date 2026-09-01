@@ -12,6 +12,8 @@ import { useSetHabitLog } from '@/modules/daily/hooks/use-set-habit-log'
 import { EventChip } from '@/modules/events/components/event-chip'
 import { useEventsForDate } from '@/modules/events/hooks/use-events-for-date'
 import { getBlocksForDate } from '@/modules/habits/lib/schedule-blocks'
+import { ProjectChip } from '@/modules/projects/components/project-chip'
+import { useProjectsDueOn } from '@/modules/projects/hooks/use-projects-due-on'
 
 /**
  * La vista original de Agenda: lista simple del día, sin grilla horaria — para quien prefiere
@@ -26,6 +28,7 @@ export function ListView() {
 
     const { data: items, isLoading } = useHabitsForDate(date)
     const { data: events } = useEventsForDate(date)
+    const { data: projects } = useProjectsDueOn(date)
     const setHabitLogMutation = useSetHabitLog(dateKey)
     const { data: monthData } = useMonthData(monthAnchor)
 
@@ -72,14 +75,17 @@ export function ListView() {
                 </div>
 
                 {isLoading && <p className='text-text-muted'>Cargando...</p>}
-                {!isLoading && items?.length === 0 && events?.length === 0 && (
-                    <p className='text-text-muted'>No había hábitos ni eventos programados este día.</p>
+                {!isLoading && items?.length === 0 && events?.length === 0 && projects?.length === 0 && (
+                    <p className='text-text-muted'>No había nada programado este día.</p>
                 )}
 
-                {events && events.length > 0 && (
+                {((events && events.length > 0) || (projects && projects.length > 0)) && (
                     <div className='flex flex-col gap-1.5'>
-                        {events.map(event => (
+                        {events?.map(event => (
                             <EventChip key={event.id} event={event} />
+                        ))}
+                        {projects?.map(project => (
+                            <ProjectChip key={project.id} project={project} />
                         ))}
                     </div>
                 )}

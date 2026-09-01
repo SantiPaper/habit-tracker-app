@@ -28,6 +28,8 @@ import { getBlocksForDate } from '@/modules/habits/lib/schedule-blocks'
 import type { EstadoLog } from '@/modules/habits/types/habit-log.types'
 import type { Habit } from '@/modules/habits/types/habit.types'
 import { useImportanciaColors } from '@/modules/profile/hooks/use-importancia-colors'
+import { ProjectChip } from '@/modules/projects/components/project-chip'
+import { useProjectsDueOn } from '@/modules/projects/hooks/use-projects-due-on'
 
 interface UnscheduledChipProps {
     habit: Habit
@@ -76,6 +78,7 @@ export function DayView({ initialDate }: DayViewProps) {
 
     const { data: items, isLoading } = useHabitsForDate(date)
     const { data: events } = useEventsForDate(date)
+    const { data: projects } = useProjectsDueOn(date)
     const setHabitLogMutation = useSetHabitLog(dateKey)
     const { data: monthData } = useMonthData(monthAnchor)
 
@@ -122,13 +125,16 @@ export function DayView({ initialDate }: DayViewProps) {
             )}
 
             <div className='max-w-4xl min-w-0 flex-1'>
-                {(unscheduled.length > 0 || (events && events.length > 0)) && (
+                {(unscheduled.length > 0 || (events && events.length > 0) || (projects && projects.length > 0)) && (
                     <div className='fixed top-44 right-8 flex w-64 flex-col gap-2'>
                         <span className='text-text-muted text-xs font-semibold tracking-wider uppercase'>
                             Sin horario
                         </span>
                         {events?.map(event => (
                             <EventChip key={event.id} event={event} />
+                        ))}
+                        {projects?.map(project => (
+                            <ProjectChip key={project.id} project={project} />
                         ))}
                         {unscheduled.map(({ habit, estado }) => (
                             <UnscheduledChip

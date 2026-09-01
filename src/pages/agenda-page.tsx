@@ -7,6 +7,8 @@ import { MonthView } from '@/modules/calendar/components/month-view'
 import { WeekView } from '@/modules/calendar/components/week-view'
 import { EventDialog } from '@/modules/events/components/event-dialog'
 import { useEventDialogStore } from '@/modules/events/store/event-dialog-store'
+import { ProjectDialog } from '@/modules/projects/components/project-dialog'
+import { useProjectDialogStore } from '@/modules/projects/store/project-dialog-store'
 
 type AgendaSubTab = 'lista' | 'dia' | 'semana' | 'mes'
 
@@ -21,6 +23,7 @@ export function AgendaPage() {
     const [subTab, setSubTab] = useState<AgendaSubTab>('dia')
     const [dayTarget, setDayTarget] = useState<Date>(() => new Date())
     const openCreateEvent = useEventDialogStore(state => state.openCreate)
+    const openCreateProject = useProjectDialogStore(state => state.openCreate)
 
     const goToDay = (date: Date) => {
         setDayTarget(date)
@@ -52,13 +55,22 @@ export function AgendaPage() {
                     ))}
                 </div>
 
-                <button
-                    type='button'
-                    onClick={() => openCreateEvent(toDateKey(dayTarget))}
-                    className='bg-accent-2 text-accent-ink rounded-full px-3.5 py-1.5 font-mono text-xs font-bold tracking-wider uppercase transition-opacity hover:opacity-90 active:opacity-80'
-                >
-                    + Evento
-                </button>
+                <div className='flex gap-1.5'>
+                    <button
+                        type='button'
+                        onClick={() => openCreateEvent(toDateKey(dayTarget))}
+                        className='bg-accent-2 text-accent-ink rounded-full px-3.5 py-1.5 font-mono text-xs font-bold tracking-wider uppercase transition-opacity hover:opacity-90 active:opacity-80'
+                    >
+                        + Evento
+                    </button>
+                    <button
+                        type='button'
+                        onClick={() => openCreateProject(toDateKey(dayTarget))}
+                        className='border-accent-2 text-accent-2 hover:bg-accent-2/10 rounded-full border px-3.5 py-1.5 font-mono text-xs font-bold tracking-wider uppercase transition-colors'
+                    >
+                        + Proyecto
+                    </button>
+                </div>
             </div>
 
             {subTab === 'lista' && <ListView />}
@@ -67,6 +79,7 @@ export function AgendaPage() {
             {subTab === 'mes' && <MonthView onSelectDay={goToDay} />}
 
             <EventDialog />
+            <ProjectDialog />
         </div>
     )
 }

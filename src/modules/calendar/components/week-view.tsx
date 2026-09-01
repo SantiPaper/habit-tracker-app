@@ -17,6 +17,7 @@ import {
 } from '@/modules/calendar/lib/time-grid'
 import { useEventsInRange } from '@/modules/events/hooks/use-events-in-range'
 import { getBlocksForDate } from '@/modules/habits/lib/schedule-blocks'
+import { useProjectsDueInRange } from '@/modules/projects/hooks/use-projects-due-in-range'
 
 interface WeekDayGridColumnProps {
     date: Date
@@ -64,6 +65,7 @@ export function WeekView({ onSelectDay }: WeekViewProps) {
     const days = getWeekDays(weekAnchor)
     const todayKey = toDateKey(new Date())
     const { data: events } = useEventsInRange(toDateKey(days[0]), toDateKey(days[days.length - 1]))
+    const { data: projects } = useProjectsDueInRange(toDateKey(days[0]), toDateKey(days[days.length - 1]))
 
     const dayEntries = days.map(date => {
         const dateKey = toDateKey(date)
@@ -71,7 +73,8 @@ export function WeekView({ onSelectDay }: WeekViewProps) {
             date,
             dateKey,
             items: data?.get(dateKey) ?? [],
-            events: events?.filter(event => event.fecha === dateKey) ?? []
+            events: events?.filter(event => event.fecha === dateKey) ?? [],
+            projects: projects?.filter(project => project.deadline === dateKey) ?? []
         }
     })
 

@@ -51,6 +51,12 @@ pub fn run() {
             sql: include_str!("../migrations/0008_add_events.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 9,
+            description: "add project table",
+            sql: include_str!("../migrations/0009_add_projects.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()
