@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react'
 
+import { useHabitFreezes } from '@/modules/achievements/hooks/use-habit-freezes'
 import { useHabitStreak } from '@/modules/achievements/hooks/use-habit-streak'
 import { useLeagueUpFlourish } from '@/modules/achievements/hooks/use-league-up-flourish'
 import { STREAK_TIERS, achievedTier } from '@/modules/achievements/lib/tiers'
@@ -35,6 +36,7 @@ function TrophyIcon({ color }: { color: string }) {
  */
 export function RankBadgeRow({ habit, children }: { habit: Habit; children?: ReactNode }) {
     const { data: streak, isLoading } = useHabitStreak(habit)
+    const { data: freezes } = useHabitFreezes(habit.id)
     const tier = streak ? achievedTier(streak.maxima) : null
     const flourishing = useLeagueUpFlourish(habit.id, habit.nombre, tier)
 
@@ -95,10 +97,20 @@ export function RankBadgeRow({ habit, children }: { habit: Habit; children?: Rea
                     })}
                 </div>
 
-                <span className='text-text shrink-0 font-mono text-lg font-bold'>
-                    {streak.maxima}
-                    <span className='text-text-muted text-[11px] font-normal'> sem</span>
-                </span>
+                <div className='flex shrink-0 items-center gap-2'>
+                    {!!freezes && freezes > 0 && (
+                        <span
+                            title={`${freezes} ${freezes === 1 ? 'freeze disponible' : 'freezes disponibles'} — cubren un día salteado sin cortar la racha`}
+                            className='border-accent-2 text-accent-2 rounded-full border px-1.5 py-0.5 font-mono text-[10px] font-bold'
+                        >
+                            🧊 x{freezes}
+                        </span>
+                    )}
+                    <span className='text-text font-mono text-lg font-bold'>
+                        {streak.maxima}
+                        <span className='text-text-muted text-[11px] font-normal'> sem</span>
+                    </span>
+                </div>
             </div>
 
             {children && <div className='border-border border-t pt-3'>{children}</div>}

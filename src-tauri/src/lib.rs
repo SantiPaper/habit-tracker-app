@@ -57,6 +57,12 @@ pub fn run() {
             sql: include_str!("../migrations/0009_add_projects.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 10,
+            description: "add habit_streak_freeze table",
+            sql: include_str!("../migrations/0010_add_streak_freeze.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()

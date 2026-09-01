@@ -6,6 +6,7 @@ import { useHydrateSession } from '@/modules/account/hooks/use-hydrate-session'
 import { useProfileSync } from '@/modules/account/hooks/use-profile-sync'
 import { isAdmin } from '@/modules/account/lib/admin'
 import { useSessionStore } from '@/modules/account/store/session-store'
+import { useStreakFreezeResolver } from '@/modules/achievements/hooks/use-streak-freeze-resolver'
 import { useAlertNotifications } from '@/modules/alerts/hooks/use-alert-notifications'
 import { EventDialog } from '@/modules/events/components/event-dialog'
 import { XpHud } from '@/modules/gamification/components/xp-hud'
@@ -174,6 +175,7 @@ function App() {
     useHydrateSession()
     useProfileSync()
     useRealtime()
+    useStreakFreezeResolver()
     useSyncEngine()
 
     // Configuración ajusta constantes de XP compartidas por toda la app — solo el admin la ve.

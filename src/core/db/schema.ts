@@ -9,6 +9,7 @@ export interface Database {
     habit_log_tombstone: HabitLogTombstoneTable
     event: EventTable
     project: ProjectTable
+    habit_streak_freeze: HabitStreakFreezeTable
 }
 
 export interface HabitTable {
@@ -83,4 +84,13 @@ export interface ProjectTable {
     estado: 'pendiente' | 'hecho'
     created_at: ColumnType<string, string | undefined, never>
     updated_at: ColumnType<string, string | undefined, string>
+}
+
+export interface HabitStreakFreezeTable {
+    id: string
+    habit_id: string
+    milestone_racha: number
+    earned_at: ColumnType<string, string | undefined, never>
+    consumed_periodo: string | null
+    consumed_at: string | null
 }

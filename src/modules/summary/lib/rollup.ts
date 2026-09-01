@@ -13,6 +13,9 @@ export interface RollupResult {
     cicloTerminado: boolean
     /** Días que faltan para que este ciclo cierre y pase a ser reclamable (si termina perfecto). */
     diasRestantes: number
+    /** Fechas (`YYYY-MM-DD`) programadas que no llegaron a `cumplido` — usado por la racha protegida
+     * (etapa 5) para decidir cuántos días puede cubrir un freeze en este ciclo. */
+    diasFaltantes: string[]
 }
 
 export function computeRollup(
@@ -29,6 +32,7 @@ export function computeRollup(
     let programados = 0
     let cumplidos = 0
     let pausados = 0
+    const diasFaltantes: string[] = []
 
     for (const day = new Date(periodStart); day <= clampedEnd; day.setDate(day.getDate() + 1)) {
         if (!habit.diasSemana?.includes(day.getDay())) continue
@@ -45,6 +49,7 @@ export function computeRollup(
 
         programados++
         if (estado === 'cumplido') cumplidos++
+        else diasFaltantes.push(dateKey)
     }
 
     return {
@@ -53,6 +58,7 @@ export function computeRollup(
         pausados,
         perfecto: programados > 0 && cumplidos === programados,
         cicloTerminado,
-        diasRestantes: Math.max(0, differenceInCalendarDays(periodEnd, today))
+        diasRestantes: Math.max(0, differenceInCalendarDays(periodEnd, today)),
+        diasFaltantes
     }
 }
