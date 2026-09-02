@@ -18,6 +18,7 @@ import {
     computeBlockGeometry,
     layoutOverlaps,
     maxHeightsByNextInColumn,
+    MIN_BLOCK_HEIGHT_PX_FULL,
     parseHoraToMinutes
 } from '@/modules/calendar/lib/time-grid'
 import {
@@ -164,6 +165,17 @@ export function DayView({ initialDate, viewFilter = 'todos' }: DayViewProps) {
     )
     const maxHeights = maxHeightsByNextInColumn(laidOut)
 
+    // Mismo cálculo de alto que hace HabitBlock (geometría real, piso de legibilidad, tope del
+    // próximo bloque) — para que el hover de "+ Crear hábito" sepa exactamente qué píxeles están
+    // ocupados de verdad y nunca se asome cerca de un bloque corto (reportado por el usuario:
+    // el aviso aparecía pegado a un bloque de 15 min con un piso de legibilidad más alto que su
+    // duración real, en una franja que el hover -snapeado a 30min, más grueso- no reconocía como ocupada).
+    const occupiedRanges = laidOut.map(({ item: slot }, index) => {
+        const geometry = computeBlockGeometry(slot.hora, slot.duracionMinutos)
+        const height = Math.min(Math.max(geometry.heightPx, MIN_BLOCK_HEIGHT_PX_FULL), maxHeights[index] ?? Infinity)
+        return { top: geometry.topPx, bottom: geometry.topPx + height }
+    })
+
     return (
         <div className='flex items-start gap-8'>
             {monthData && (
@@ -240,7 +252,10 @@ export function DayView({ initialDate, viewFilter = 'todos' }: DayViewProps) {
                                 isToday: dateKey === todayKey,
                                 children: (
                                     <>
-                                        <EmptySlotHoverLayer onCreateAt={setQuickCreateHora} />
+                                        <EmptySlotHoverLayer
+                                            occupiedRanges={occupiedRanges}
+                                            onCreateAt={setQuickCreateHora}
+                                        />
                                         {laidOut.map(({ item: slot, column, columnCount }, index) => (
                                             <HabitBlock
                                                 key={`${slot.item.habit.id}-${slot.hora}-${index}`}
