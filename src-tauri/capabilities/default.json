@@ -16,7 +16,10 @@
         "process:allow-restart",
         {
             "identifier": "http:default",
-            "allow": [{ "url": "https://habit-tracker-server-um59.onrender.com/*" }]
+            "allow": [
+                { "url": "https://habit-tracker-server-um59.onrender.com/*" },
+                { "url": "http://localhost:3311/*" }
+            ]
         }
     ]
 }
