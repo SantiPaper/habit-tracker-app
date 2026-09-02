@@ -1,25 +1,22 @@
-import type { Selectable } from 'kysely'
-
-import type { Habit } from '../types/habit.types'
-
 import { toDomainScheduleBlock } from './habit-schedule-block.service'
 
-import type { HabitScheduleBlockTable, HabitTable } from '@/core/db/schema'
+import type { ApiHabit } from '@/modules/habits/services/habit-api.service'
+import type { Habit } from '@/modules/habits/types/habit.types'
 
-export function toDomainHabit(row: Selectable<HabitTable>, blocks: Selectable<HabitScheduleBlockTable>[] = []): Habit {
+export function toDomainHabit(row: ApiHabit): Habit {
     return {
         id: row.id,
         nombre: row.nombre,
         tipo: row.tipo,
-        diasSemana: row.dias_semana ? (JSON.parse(row.dias_semana) as number[]) : null,
+        diasSemana: row.diasSemana ? (JSON.parse(row.diasSemana) as number[]) : null,
         fecha: row.fecha,
         hora: row.hora,
-        duracionMinutos: row.duracion_minutos,
-        scheduleBlocks: blocks.map(toDomainScheduleBlock),
+        duracionMinutos: row.duracionMinutos,
+        scheduleBlocks: row.scheduleBlocks.map(toDomainScheduleBlock),
         color: row.color,
         importancia: row.importancia,
-        fechaInicio: row.fecha_inicio,
-        fechaFin: row.fecha_fin,
-        activo: row.activo === 1
+        fechaInicio: row.fechaInicio,
+        fechaFin: row.fechaFin,
+        activo: row.activo
     }
 }
