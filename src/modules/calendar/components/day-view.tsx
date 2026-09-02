@@ -18,6 +18,7 @@ import {
     computeBlockGeometry,
     DEFAULT_VISUAL_DURATION_MIN,
     layoutOverlaps,
+    MIN_BLOCK_HEIGHT_PX_FULL,
     parseHoraToMinutes
 } from '@/modules/calendar/lib/time-grid'
 import {
@@ -147,7 +148,15 @@ export function DayView({ initialDate, viewFilter = 'todos' }: DayViewProps) {
         itemsWithBlocks.flatMap(({ item, blocks }) =>
             blocks.map(block => {
                 const startMin = parseHoraToMinutes(block.hora)
-                const endMin = startMin + (block.duracionMinutos ?? DEFAULT_VISUAL_DURATION_MIN)
+                // El alto mínimo del bloque (ver MIN_BLOCK_HEIGHT_PX_FULL) puede ser más largo que
+                // la duración real de un hábito corto — si no se refleja acá, dos hábitos cortos y
+                // consecutivos que no se solapan en su horario real terminan solapados en pantalla
+                // porque el alto inflado de uno invade el espacio del siguiente.
+                const visualDuration = Math.max(
+                    block.duracionMinutos ?? DEFAULT_VISUAL_DURATION_MIN,
+                    MIN_BLOCK_HEIGHT_PX_FULL
+                )
+                const endMin = startMin + visualDuration
                 return {
                     item,
                     hora: block.hora,

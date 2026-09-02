@@ -4,6 +4,18 @@ export const HOUR_HEIGHT_PX = 60
 /** Duración visual para un hábito sin `duracionMinutos` — solo afecta el alto del bloque, no se guarda en ningún lado. */
 export const DEFAULT_VISUAL_DURATION_MIN = 45
 
+/**
+ * Alto mínimo (px) de un bloque en cada variante — sin esto, un hábito de pocos minutos queda tan
+ * bajito que el nombre y los botones de Cumplido/No cumplido/Reset no entran bien. Como
+ * `HOUR_HEIGHT_PX` es 60 (1px = 1min exacto), este mismo número sirve como "duración visual
+ * mínima en minutos" al armar `layoutOverlaps` — si no se usara ahí también, dos hábitos cortos y
+ * consecutivos (que no se solapan en su horario REAL) podrían terminar solapados en pantalla
+ * porque el alto inflado de uno invade el espacio del siguiente (bug real, reportado por el
+ * usuario: "cuando es muy chico el hábito no se ve bien los botones").
+ */
+export const MIN_BLOCK_HEIGHT_PX_FULL = 54
+export const MIN_BLOCK_HEIGHT_PX_COMPACT = 30
+
 const GRID_START_MIN = GRID_START_HOUR * 60
 const GRID_END_MIN = GRID_END_HOUR * 60
 export const GRID_HEIGHT_PX = (GRID_END_HOUR - GRID_START_HOUR) * HOUR_HEIGHT_PX

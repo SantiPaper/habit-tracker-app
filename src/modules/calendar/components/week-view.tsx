@@ -13,6 +13,7 @@ import {
     computeBlockGeometry,
     DEFAULT_VISUAL_DURATION_MIN,
     layoutOverlaps,
+    MIN_BLOCK_HEIGHT_PX_COMPACT,
     parseHoraToMinutes
 } from '@/modules/calendar/lib/time-grid'
 import {
@@ -43,7 +44,13 @@ function WeekDayGridColumn({ date, items, exceptionByHabitId }: WeekDayGridColum
                 : getBlocksForDate(item.habit, date)
             return blocks.map(block => {
                 const startMin = parseHoraToMinutes(block.hora)
-                const endMin = startMin + (block.duracionMinutos ?? DEFAULT_VISUAL_DURATION_MIN)
+                // Ver el comentario equivalente en day-view.tsx — el alto mínimo del bloque puede
+                // superar la duración real de un hábito corto.
+                const visualDuration = Math.max(
+                    block.duracionMinutos ?? DEFAULT_VISUAL_DURATION_MIN,
+                    MIN_BLOCK_HEIGHT_PX_COMPACT
+                )
+                const endMin = startMin + visualDuration
                 return { item, hora: block.hora, duracionMinutos: block.duracionMinutos, startMin, endMin }
             })
         })

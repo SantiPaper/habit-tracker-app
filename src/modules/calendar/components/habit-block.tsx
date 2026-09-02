@@ -1,7 +1,15 @@
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react'
 import { useRef, useState } from 'react'
 
-import { GRID_END_HOUR, GRID_START_HOUR, minutesToHora, parseHoraToMinutes, type BlockGeometry } from '../lib/time-grid'
+import {
+    GRID_END_HOUR,
+    GRID_START_HOUR,
+    MIN_BLOCK_HEIGHT_PX_COMPACT,
+    MIN_BLOCK_HEIGHT_PX_FULL,
+    minutesToHora,
+    parseHoraToMinutes,
+    type BlockGeometry
+} from '../lib/time-grid'
 
 import { EstadoToggle } from '@/components/estado-toggle'
 import { useFlashOnTrue } from '@/lib/hooks/use-flash-on-true'
@@ -61,7 +69,7 @@ export function HabitBlock({
     const now = useNow()
     const { data: importanciaColors } = useImportanciaColors()
     const overdue = isToday === true && isImportanceOverdue(habit, estado, now, blocksToday ?? [])
-    const minHeight = variant === 'full' ? 54 : 30
+    const minHeight = variant === 'full' ? MIN_BLOCK_HEIGHT_PX_FULL : MIN_BLOCK_HEIGHT_PX_COMPACT
     const height = Math.max(geometry.heightPx, minHeight)
     const widthPercent = 100 / columnCount
 
