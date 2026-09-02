@@ -7,11 +7,15 @@ export const HOUR_HEIGHT_PX = 80
 
 /**
  * Alto mínimo (px, SIEMPRE en píxeles — no confundir con minutos) de un bloque en cada variante —
- * sin esto, un hábito de pocos minutos queda tan bajito que el nombre y los botones de Cumplido/No
- * cumplido/Reset no entran bien. `habit-block.tsx` los usa directo para el alto real renderizado;
- * `maxHeightsByNextInColumn` (más abajo) es quien evita que ese piso invada al próximo bloque.
+ * sin esto, un hábito de pocos minutos queda tan bajito que ni el nombre ni los botones de
+ * Cumplido/No cumplido/Reset entran. `habit-block.tsx` los usa directo para el alto real
+ * renderizado; `maxHeightsByNextInColumn` (más abajo) es quien evita que ese piso invada al
+ * próximo bloque. Calibrado contra el layout COMPACTO de una sola fila (botones de 24px, ver
+ * `COMPACT_LAYOUT_THRESHOLD_PX` en habit-block.tsx) — con HOUR_HEIGHT_PX=80 esto es 32/80=40% de
+ * una hora, claramente por debajo de la mitad (pedido explícito del usuario: un hábito de 15/30min
+ * no puede terminar ocupando "casi una hora entera" solo porque el piso de legibilidad lo infla).
  */
-export const MIN_BLOCK_HEIGHT_PX_FULL = 54
+export const MIN_BLOCK_HEIGHT_PX_FULL = 32
 export const MIN_BLOCK_HEIGHT_PX_COMPACT = 30
 
 const GRID_START_MIN = GRID_START_HOUR * 60

@@ -80,6 +80,12 @@ export function HabitBlock({
     // próximo bloque — maxHeightPx (si vino) manda por encima de eso, nunca al revés: nunca corta
     // por debajo del alto real (geometry.heightPx), maxHeightsByNextInColumn ya lo garantiza.
     const height = Math.min(Math.max(geometry.heightPx, minHeight), maxHeightPx ?? Infinity)
+    // Por debajo de esto no entra el layout normal (nombre en su propia línea + botones de 36px)
+    // sin quedar apretado — pasa a una fila compacta con botones de 24px. Un hábito de 15/30min NO
+    // puede terminar ocupando "casi una hora entera" solo porque el piso de legibilidad lo infla
+    // (reportado por el usuario, con captura: "no puede ocupar más de la mitad de espacio").
+    const COMPACT_LAYOUT_THRESHOLD_PX = 48
+    const isCompactLayout = variant === 'full' && height < COMPACT_LAYOUT_THRESHOLD_PX
     const widthPercent = 100 / columnCount
 
     const [dragOffsetPx, setDragOffsetPx] = useState(0)
@@ -175,7 +181,7 @@ export function HabitBlock({
             onPointerCancel={handlePointerUp}
         >
             <div
-                className={`flex h-full w-full items-center justify-between gap-3 overflow-hidden rounded-lg border border-l-4 px-3 py-1.5 ${draggable ? 'cursor-grab active:cursor-grabbing' : ''} ${ESTADO_BLOCK_STYLE[estado ?? 'null']} ${flashing ? 'spark-pulse' : ''} ${overdue ? 'importance-alert-pulse' : ''}`}
+                className={`flex h-full w-full items-center justify-between overflow-hidden rounded-lg border border-l-4 ${isCompactLayout ? 'gap-2 px-2 py-0.5' : 'gap-3 px-3 py-1.5'} ${draggable ? 'cursor-grab active:cursor-grabbing' : ''} ${ESTADO_BLOCK_STYLE[estado ?? 'null']} ${flashing ? 'spark-pulse' : ''} ${overdue ? 'importance-alert-pulse' : ''}`}
                 style={
                     {
                         ...(habit.color ? { borderLeftColor: habit.color } : undefined),
@@ -187,19 +193,28 @@ export function HabitBlock({
                     } as CSSProperties
                 }
             >
-                <div className='flex min-w-0 flex-col gap-0.5'>
-                    <div className='flex min-w-0 items-center gap-1.5'>
-                        <span className='truncate text-[13px] font-semibold'>{habit.nombre}</span>
-                        <ImportanciaLabel importancia={habit.importancia} />
-                        {estado === 'cumplido' && <CumplidoBadge />}
+                {isCompactLayout ? (
+                    // Una sola fila: no entra el nombre en su propia línea + hora/duración debajo +
+                    // botones de 36px sin quedar apretado — ver COMPACT_LAYOUT_THRESHOLD_PX arriba.
+                    <div className='flex min-w-0 flex-1 items-baseline gap-1.5'>
+                        <span className='truncate text-[12px] font-semibold'>{habit.nombre}</span>
+                        <span className='shrink-0 truncate font-mono text-[9px] opacity-70'>{hora}</span>
                     </div>
-                    <span className='truncate font-mono text-[10px] opacity-80'>
-                        {hora}
-                        {duracionMinutos ? ` · ${duracionMinutos} min` : ''}
-                    </span>
-                </div>
+                ) : (
+                    <div className='flex min-w-0 flex-col gap-0.5'>
+                        <div className='flex min-w-0 items-center gap-1.5'>
+                            <span className='truncate text-[13px] font-semibold'>{habit.nombre}</span>
+                            <ImportanciaLabel importancia={habit.importancia} />
+                            {estado === 'cumplido' && <CumplidoBadge />}
+                        </div>
+                        <span className='truncate font-mono text-[10px] opacity-80'>
+                            {hora}
+                            {duracionMinutos ? ` · ${duracionMinutos} min` : ''}
+                        </span>
+                    </div>
+                )}
                 <div className='shrink-0'>
-                    <EstadoToggle value={estado} onChange={onChange ?? (() => {})} />
+                    <EstadoToggle value={estado} onChange={onChange ?? (() => {})} dense={isCompactLayout} />
                 </div>
             </div>
         </div>
