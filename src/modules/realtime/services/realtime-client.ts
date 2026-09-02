@@ -6,7 +6,8 @@ export type WsInboundMessage =
     | { type: 'activity_feed_changed' }
     | { type: 'auth_ok' }
 
-const WS_URL = 'wss://habit-tracker-server-um59.onrender.com/ws'
+// Mismo criterio que API_BASE_URL en api-client.ts — VITE_WS_URL pisa esto en `tauri dev`.
+const WS_URL = import.meta.env.VITE_WS_URL ?? 'wss://habit-tracker-server-um59.onrender.com/ws'
 
 /**
  * `WebSocket` global del WebView, sin plugin de Tauri: a diferencia de `fetch`, el handshake de
