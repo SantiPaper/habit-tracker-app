@@ -1,7 +1,8 @@
-import { sql, type Selectable } from 'kysely'
-
-import { db } from '@/core/db/client'
-import type { HabitScheduleExceptionTable } from '@/core/db/schema'
+import {
+    apiListExceptions,
+    apiUpsertException,
+    type ApiScheduleException
+} from './habit-schedule-exception-api.service'
 
 export interface HabitScheduleException {
     id: string
@@ -11,24 +12,19 @@ export interface HabitScheduleException {
     duracionMinutos: number | null
 }
 
-function toDomainException(row: Selectable<HabitScheduleExceptionTable>): HabitScheduleException {
+function toDomainException(row: ApiScheduleException): HabitScheduleException {
     return {
         id: row.id,
-        habitId: row.habit_id,
+        habitId: row.habitId,
         fecha: row.fecha,
         hora: row.hora,
-        duracionMinutos: row.duracion_minutos
+        duracionMinutos: row.duracionMinutos
     }
 }
 
 /** Excepciones puntuales ("solo hoy") en un rango de fechas — para pintar Día/Semana. */
 export async function getExceptionsInRange(fromKey: string, toKey: string): Promise<HabitScheduleException[]> {
-    const rows = await db
-        .selectFrom('habit_schedule_exception')
-        .selectAll()
-        .where('fecha', '>=', fromKey)
-        .where('fecha', '<=', toKey)
-        .execute()
+    const rows = await apiListExceptions(fromKey, toKey)
     return rows.map(toDomainException)
 }
 
@@ -39,15 +35,6 @@ export async function upsertException(
     hora: string,
     duracionMinutos: number | null
 ): Promise<HabitScheduleException> {
-    const row = await db
-        .insertInto('habit_schedule_exception')
-        .values({ id: crypto.randomUUID(), habit_id: habitId, fecha, hora, duracion_minutos: duracionMinutos })
-        .onConflict(oc =>
-            oc
-                .columns(['habit_id', 'fecha'])
-                .doUpdateSet({ hora, duracion_minutos: duracionMinutos, updated_at: sql`datetime('now')` })
-        )
-        .returningAll()
-        .executeTakeFirstOrThrow()
+    const row = await apiUpsertException(habitId, fecha, hora, duracionMinutos)
     return toDomainException(row)
 }
