@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 
+import { backfillOrphanedOwnership } from '../services/ownership-backfill.service'
 import { getSession } from '../services/session.service'
 import { useSessionStore } from '../store/session-store'
 
@@ -15,7 +16,11 @@ export function useHydrateSession() {
 
         getSession()
             .then(session => {
-                if (!cancelled) useSessionStore.getState().setSession(session)
+                if (cancelled) return
+                useSessionStore.getState().setSession(session)
+                // No bloquea la hidratación — es una corrección en segundo plano, no algo de lo que
+                // el arranque de la app dependa.
+                if (session) void backfillOrphanedOwnership(session.userId)
             })
             .catch(() => {
                 if (!cancelled) useSessionStore.getState().setSession(null)

@@ -170,8 +170,18 @@ export interface RemoteChanges {
     claims: { id: string; habitId: string; tipo: string; periodo: string; xpOtorgado: number; reclamadoEn: string }[]
 }
 
-/** Aplica lo que trajo el pull — last-write-wins comparando contra lo que ya hay local antes de pisar. */
+/**
+ * Aplica lo que trajo el pull — last-write-wins comparando contra lo que ya hay local antes de
+ * pisar. `ownerId` se lee UNA sola vez acá arriba (no en cada iteración) — antes se releía
+ * `useSessionStore.getState()` en cada insert, así que un logout/cambio de cuenta a mitad del pull
+ * podía dejar un hábito con `owner_user_id: null`, invisible aunque intacto (bug real, encontrado
+ * el 2026-09-01: 3 hábitos quedaron huérfanos así). Si no hay sesión estable ni bien arranca, se
+ * aborta todo el batch — mismo criterio que ya usa `runSyncTick` para no sincronizar sin cuenta.
+ */
 export async function applyRemoteChanges(remote: RemoteChanges): Promise<void> {
+    const ownerId = useSessionStore.getState().session?.userId
+    if (!ownerId) return
+
     for (const habit of remote.habits) {
         const existing = await db.selectFrom('habit').select('updated_at').where('id', '=', habit.id).executeTakeFirst()
         const incoming = isoToSqlite(habit.updatedAt)
@@ -206,7 +216,7 @@ export async function applyRemoteChanges(remote: RemoteChanges): Promise<void> {
                         id: habit.id,
                         ...mutableFields,
                         created_at: isoToSqlite(habit.createdAt),
-                        owner_user_id: useSessionStore.getState().session?.userId ?? null
+                        owner_user_id: ownerId
                     })
                     .execute()
             }
