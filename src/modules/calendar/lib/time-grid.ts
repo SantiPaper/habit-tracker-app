@@ -122,3 +122,33 @@ export function layoutOverlaps<T extends TimedItem>(items: T[]): LaidOutItem<T>[
 
     return result
 }
+
+/**
+ * Para cada ítem ya ubicado por `layoutOverlaps`, el alto máximo (px — recordar que 1px = 1min acá)
+ * que puede ocupar sin invadir al próximo ítem de SU MISMA columna. Sirve para que `HabitBlock`
+ * pueda crecer hasta su alto mínimo de legibilidad (ver `MIN_BLOCK_HEIGHT_PX_FULL/COMPACT`) sin
+ * pisar visualmente al siguiente — sin esto, dos hábitos cortos que en su horario real NO se
+ * solapan (ej. uno termina a las 08:15 y el otro arranca a las 08:30) quedaban con sus cajas
+ * invadiéndose igual, porque el alto mínimo por legibilidad de uno se extendía más allá de su
+ * horario real (bug reportado por el usuario, con captura). Devuelve `undefined` para el último
+ * ítem de cada columna (nada después que lo limite en ese carril).
+ */
+export function maxHeightsByNextInColumn<T extends TimedItem>(laidOut: LaidOutItem<T>[]): (number | undefined)[] {
+    const indicesByColumn = new Map<number, number[]>()
+    laidOut.forEach((entry, index) => {
+        const list = indicesByColumn.get(entry.column)
+        if (list) list.push(index)
+        else indicesByColumn.set(entry.column, [index])
+    })
+
+    const result: (number | undefined)[] = new Array(laidOut.length).fill(undefined)
+    for (const indices of indicesByColumn.values()) {
+        indices.sort((a, b) => laidOut[a].item.startMin - laidOut[b].item.startMin)
+        for (let i = 0; i < indices.length - 1; i++) {
+            const current = indices[i]
+            const next = indices[i + 1]
+            result[current] = laidOut[next].item.startMin - laidOut[current].item.startMin
+        }
+    }
+    return result
+}

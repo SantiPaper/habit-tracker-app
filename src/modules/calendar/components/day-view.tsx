@@ -18,7 +18,7 @@ import {
     computeBlockGeometry,
     DEFAULT_VISUAL_DURATION_MIN,
     layoutOverlaps,
-    MIN_BLOCK_HEIGHT_PX_FULL,
+    maxHeightsByNextInColumn,
     parseHoraToMinutes
 } from '@/modules/calendar/lib/time-grid'
 import {
@@ -148,15 +148,7 @@ export function DayView({ initialDate, viewFilter = 'todos' }: DayViewProps) {
         itemsWithBlocks.flatMap(({ item, blocks }) =>
             blocks.map(block => {
                 const startMin = parseHoraToMinutes(block.hora)
-                // El alto mínimo del bloque (ver MIN_BLOCK_HEIGHT_PX_FULL) puede ser más largo que
-                // la duración real de un hábito corto — si no se refleja acá, dos hábitos cortos y
-                // consecutivos que no se solapan en su horario real terminan solapados en pantalla
-                // porque el alto inflado de uno invade el espacio del siguiente.
-                const visualDuration = Math.max(
-                    block.duracionMinutos ?? DEFAULT_VISUAL_DURATION_MIN,
-                    MIN_BLOCK_HEIGHT_PX_FULL
-                )
-                const endMin = startMin + visualDuration
+                const endMin = startMin + (block.duracionMinutos ?? DEFAULT_VISUAL_DURATION_MIN)
                 return {
                     item,
                     hora: block.hora,
@@ -169,6 +161,7 @@ export function DayView({ initialDate, viewFilter = 'todos' }: DayViewProps) {
             })
         )
     )
+    const maxHeights = maxHeightsByNextInColumn(laidOut)
 
     return (
         <div className='flex items-start gap-8'>
@@ -256,6 +249,7 @@ export function DayView({ initialDate, viewFilter = 'todos' }: DayViewProps) {
                                                 duracionMinutos={slot.duracionMinutos}
                                                 blocksToday={slot.blocksToday}
                                                 geometry={computeBlockGeometry(slot.hora, slot.duracionMinutos)}
+                                                maxHeightPx={maxHeights[index]}
                                                 column={column}
                                                 columnCount={columnCount}
                                                 variant='full'

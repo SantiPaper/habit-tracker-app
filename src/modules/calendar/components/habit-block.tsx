@@ -30,6 +30,8 @@ interface HabitBlockProps {
     hora: string
     duracionMinutos: number | null
     geometry: BlockGeometry
+    /** Tope de alto (px) para no invadir al próximo bloque de la misma columna — ver `maxHeightsByNextInColumn`. `undefined` = sin tope (último de su columna). */
+    maxHeightPx?: number
     column: number
     columnCount: number
     variant: 'full' | 'compact'
@@ -56,6 +58,7 @@ export function HabitBlock({
     hora,
     duracionMinutos,
     geometry,
+    maxHeightPx,
     column,
     columnCount,
     variant,
@@ -70,7 +73,10 @@ export function HabitBlock({
     const { data: importanciaColors } = useImportanciaColors()
     const overdue = isToday === true && isImportanceOverdue(habit, estado, now, blocksToday ?? [])
     const minHeight = variant === 'full' ? MIN_BLOCK_HEIGHT_PX_FULL : MIN_BLOCK_HEIGHT_PX_COMPACT
-    const height = Math.max(geometry.heightPx, minHeight)
+    // El piso de legibilidad (minHeight) puede querer más espacio del que hay libre hasta el
+    // próximo bloque — maxHeightPx (si vino) manda por encima de eso, nunca al revés: nunca corta
+    // por debajo del alto real (geometry.heightPx), maxHeightsByNextInColumn ya lo garantiza.
+    const height = Math.min(Math.max(geometry.heightPx, minHeight), maxHeightPx ?? Infinity)
     const widthPercent = 100 / columnCount
 
     const [dragOffsetPx, setDragOffsetPx] = useState(0)
