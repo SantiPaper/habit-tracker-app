@@ -1,3 +1,4 @@
+use tauri::Manager;
 use tauri_plugin_sql::{Migration, MigrationKind};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -94,6 +95,17 @@ pub fn run() {
                 .add_migrations("sqlite:habit-tracker.db", migrations)
                 .build(),
         )
+        // Título distinto en `tauri dev` — así la ventana de testeo (contra el server local, ver
+        // .env.development) nunca se confunde con la app instalada de verdad, que puede estar
+        // abierta al mismo tiempo con datos reales.
+        .setup(|app| {
+            if cfg!(debug_assertions) {
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.set_title("Habit Tracker — TESTEO");
+                }
+            }
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
