@@ -27,6 +27,24 @@ export function minutesToPx(minutes: number): number {
     return (minutes / 60) * HOUR_HEIGHT_PX
 }
 
+/** Inversa de `minutesToPx`. */
+function pxToMinutes(px: number): number {
+    return (px / HOUR_HEIGHT_PX) * 60
+}
+
+/**
+ * "Duración mínima de layout" — cuántos minutos reales de hueco necesita un bloque para renderizar
+ * su piso de legibilidad (`MIN_BLOCK_HEIGHT_PX_FULL/COMPACT`) SIN comprimirse por debajo de él. Se
+ * usa como piso al calcular solapamientos (`layoutOverlaps`, en day-view.tsx/week-view.tsx) — dos
+ * hábitos de 15min separados por solo 15min reales no entran parados uno debajo del otro sin que
+ * `maxHeightsByNextInColumn` los aplaste por debajo de su propio mínimo (bug real, reportado por
+ * el usuario: "cree dos de 15 minutos y no hay espacio"). Tratarlos como si "ocuparan" este mínimo
+ * (en vez de su duración real, más corta) hace que `layoutOverlaps` los mande a columnas separadas
+ * en vez de apilarlos rotos — mismo mecanismo que ya usa para solapamientos de horario reales.
+ */
+export const MIN_BLOCK_DURATION_MIN_FULL = Math.ceil(pxToMinutes(MIN_BLOCK_HEIGHT_PX_FULL))
+export const MIN_BLOCK_DURATION_MIN_COMPACT = Math.ceil(pxToMinutes(MIN_BLOCK_HEIGHT_PX_COMPACT))
+
 export function parseHoraToMinutes(hora: string): number {
     const [h, m] = hora.split(':').map(Number)
     return h * 60 + m

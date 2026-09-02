@@ -13,6 +13,7 @@ import {
     computeBlockGeometry,
     layoutOverlaps,
     maxHeightsByNextInColumn,
+    MIN_BLOCK_DURATION_MIN_COMPACT,
     parseHoraToMinutes
 } from '@/modules/calendar/lib/time-grid'
 import {
@@ -43,7 +44,9 @@ function WeekDayGridColumn({ date, items, exceptionByHabitId }: WeekDayGridColum
                 : getBlocksForDate(item.habit, date)
             return blocks.map(block => {
                 const startMin = parseHoraToMinutes(block.hora)
-                const endMin = startMin + (block.duracionMinutos ?? 0)
+                // Ver el comentario equivalente en day-view.tsx — piso de MIN_BLOCK_DURATION_MIN_COMPACT
+                // solo para decidir columnas, el renderizado sigue usando la duración real.
+                const endMin = startMin + Math.max(block.duracionMinutos ?? 0, MIN_BLOCK_DURATION_MIN_COMPACT)
                 return { item, hora: block.hora, duracionMinutos: block.duracionMinutos, startMin, endMin }
             })
         })

@@ -3,7 +3,10 @@ import { useState } from 'react'
 
 import { GRID_HEIGHT_PX, GRID_START_HOUR, HOUR_HEIGHT_PX, minutesToHora } from '../lib/time-grid'
 
-const SNAP_MIN = 30
+// Antes 30 — no dejaba crear un hábito a las :15/:45 (ej. crear uno de 11:00-11:15 y no poder
+// arrancar el siguiente hasta las 11:30). Ahora coincide con el snap del arrastre (DRAG_SNAP_MIN
+// en habit-block.tsx), así que ambos caminos ofrecen la misma granularidad.
+const SNAP_MIN = 15
 
 export interface OccupiedRange {
     top: number

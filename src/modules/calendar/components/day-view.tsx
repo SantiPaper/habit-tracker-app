@@ -18,6 +18,7 @@ import {
     computeBlockGeometry,
     layoutOverlaps,
     maxHeightsByNextInColumn,
+    MIN_BLOCK_DURATION_MIN_FULL,
     MIN_BLOCK_HEIGHT_PX_FULL,
     parseHoraToMinutes
 } from '@/modules/calendar/lib/time-grid'
@@ -148,9 +149,12 @@ export function DayView({ initialDate, viewFilter = 'todos' }: DayViewProps) {
         itemsWithBlocks.flatMap(({ item, blocks }) =>
             blocks.map(block => {
                 const startMin = parseHoraToMinutes(block.hora)
-                // Sin duracionMinutos, el hábito no ocupa ventana real en el tiempo — ver el
-                // comentario en computeBlockGeometry (time-grid.ts).
-                const endMin = startMin + (block.duracionMinutos ?? 0)
+                // Para decidir columnas (layoutOverlaps) se usa la duración real, PERO nunca menos
+                // que MIN_BLOCK_DURATION_MIN_FULL — así dos hábitos cortos muy pegados van a
+                // columnas separadas en vez de aplastarse por debajo de su propio mínimo legible.
+                // El renderizado (computeBlockGeometry, unas líneas más abajo al armar `laidOut`)
+                // sigue usando la duración real sin inflar — esto solo afecta el layout de columnas.
+                const endMin = startMin + Math.max(block.duracionMinutos ?? 0, MIN_BLOCK_DURATION_MIN_FULL)
                 return {
                     item,
                     hora: block.hora,
