@@ -16,7 +16,6 @@ import { useNow } from '@/lib/hooks/use-now'
 import { useMonthData } from '@/modules/calendar/hooks/use-month-data'
 import {
     computeBlockGeometry,
-    DEFAULT_VISUAL_DURATION_MIN,
     layoutOverlaps,
     maxHeightsByNextInColumn,
     parseHoraToMinutes
@@ -148,7 +147,9 @@ export function DayView({ initialDate, viewFilter = 'todos' }: DayViewProps) {
         itemsWithBlocks.flatMap(({ item, blocks }) =>
             blocks.map(block => {
                 const startMin = parseHoraToMinutes(block.hora)
-                const endMin = startMin + (block.duracionMinutos ?? DEFAULT_VISUAL_DURATION_MIN)
+                // Sin duracionMinutos, el hábito no ocupa ventana real en el tiempo — ver el
+                // comentario en computeBlockGeometry (time-grid.ts).
+                const endMin = startMin + (block.duracionMinutos ?? 0)
                 return {
                     item,
                     hora: block.hora,

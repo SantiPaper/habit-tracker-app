@@ -11,7 +11,6 @@ import type { CalendarDayItem } from '@/modules/calendar/hooks/use-month-data'
 import { getWeekDays, useWeekData } from '@/modules/calendar/hooks/use-week-data'
 import {
     computeBlockGeometry,
-    DEFAULT_VISUAL_DURATION_MIN,
     layoutOverlaps,
     maxHeightsByNextInColumn,
     parseHoraToMinutes
@@ -44,7 +43,7 @@ function WeekDayGridColumn({ date, items, exceptionByHabitId }: WeekDayGridColum
                 : getBlocksForDate(item.habit, date)
             return blocks.map(block => {
                 const startMin = parseHoraToMinutes(block.hora)
-                const endMin = startMin + (block.duracionMinutos ?? DEFAULT_VISUAL_DURATION_MIN)
+                const endMin = startMin + (block.duracionMinutos ?? 0)
                 return { item, hora: block.hora, duracionMinutos: block.duracionMinutos, startMin, endMin }
             })
         })

@@ -4,9 +4,11 @@ import { useRef, useState } from 'react'
 import {
     GRID_END_HOUR,
     GRID_START_HOUR,
+    HOUR_HEIGHT_PX,
     MIN_BLOCK_HEIGHT_PX_COMPACT,
     MIN_BLOCK_HEIGHT_PX_FULL,
     minutesToHora,
+    minutesToPx,
     parseHoraToMinutes,
     type BlockGeometry
 } from '../lib/time-grid'
@@ -48,6 +50,7 @@ interface HabitBlockProps {
 }
 
 const DRAG_SNAP_MIN = 15
+const DRAG_SNAP_PX = minutesToPx(DRAG_SNAP_MIN)
 /** Un arrastre más chico que esto se descarta como "no fue intencional" (click tembloroso). */
 const DRAG_THRESHOLD_PX = 8
 
@@ -95,7 +98,7 @@ export function HabitBlock({
     function handlePointerMove(e: ReactPointerEvent<HTMLDivElement>) {
         if (dragStartYRef.current === null) return
         const rawDelta = e.clientY - dragStartYRef.current
-        setDragOffsetPx(Math.round(rawDelta / DRAG_SNAP_MIN) * DRAG_SNAP_MIN)
+        setDragOffsetPx(Math.round(rawDelta / DRAG_SNAP_PX) * DRAG_SNAP_PX)
     }
 
     function handlePointerUp() {
@@ -107,10 +110,13 @@ export function HabitBlock({
 
         if (Math.abs(finalOffset) < DRAG_THRESHOLD_PX || !onDragReschedule) return
 
-        // 1px de la grilla = 1 minuto (ver time-grid.ts) — el delta de arrastre ya viene snappeado a 15.
+        // Convierte el delta de arrastre (px, ya snappeado a un múltiplo de DRAG_SNAP_PX) de vuelta
+        // a minutos vía HOUR_HEIGHT_PX — antes asumía 1px = 1min, dejó de ser cierto cuando la
+        // grilla se agrandó (HOUR_HEIGHT_PX > 60) para darle más aire a los hábitos cortos.
+        const finalOffsetMin = Math.round((finalOffset / HOUR_HEIGHT_PX) * 60)
         const minMinutes = GRID_START_HOUR * 60
         const maxMinutes = GRID_END_HOUR * 60 - (duracionMinutos ?? DRAG_SNAP_MIN)
-        const newStartMin = Math.min(maxMinutes, Math.max(minMinutes, parseHoraToMinutes(hora) + finalOffset))
+        const newStartMin = Math.min(maxMinutes, Math.max(minMinutes, parseHoraToMinutes(hora) + finalOffsetMin))
         onDragReschedule(minutesToHora(newStartMin))
     }
 
