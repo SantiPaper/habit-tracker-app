@@ -80,12 +80,18 @@ export function HabitBlock({
     // próximo bloque — maxHeightPx (si vino) manda por encima de eso, nunca al revés: nunca corta
     // por debajo del alto real (geometry.heightPx), maxHeightsByNextInColumn ya lo garantiza.
     const height = Math.min(Math.max(geometry.heightPx, minHeight), maxHeightPx ?? Infinity)
-    // Por debajo de esto no entra el layout normal (nombre en su propia línea + botones de 36px)
-    // sin quedar apretado — pasa a una fila compacta con botones de 24px. Un hábito de 15/30min NO
-    // puede terminar ocupando "casi una hora entera" solo porque el piso de legibilidad lo infla
-    // (reportado por el usuario, con captura: "no puede ocupar más de la mitad de espacio").
-    const COMPACT_LAYOUT_THRESHOLD_PX = 48
-    const isCompactLayout = variant === 'full' && height < COMPACT_LAYOUT_THRESHOLD_PX
+    // Tres niveles según cuánto alto real hay, no solo dos — con MIN_BLOCK_HEIGHT_PX_FULL calibrado
+    // a 15min exactos (20px), ni los botones de 24px del nivel "compacto" entran ahí. Por debajo de
+    // NORMAL_THRESHOLD_PX no entra el layout normal (nombre en su línea + botones de 36px) sin
+    // quedar apretado; por debajo de COMPACT_THRESHOLD_PX tampoco entran los botones chicos — ahí
+    // se saca el EstadoToggle del todo y el bloque ENTERO pasa a ser clickeable para ciclar el
+    // estado (mismo patrón que ya usa la variante `compact` de Semana), así el tamaño puede ser el
+    // real sin inflar nada (reportado por el usuario: un hábito de 15min se veía "más grande de lo
+    // que debería", y dos hábitos a 15min de diferencia se separaban en columnas sin necesitarlo).
+    const NORMAL_THRESHOLD_PX = 48
+    const COMPACT_THRESHOLD_PX = 30
+    const isCompactLayout = variant === 'full' && height < NORMAL_THRESHOLD_PX
+    const isMicroLayout = variant === 'full' && height < COMPACT_THRESHOLD_PX
     const widthPercent = 100 / columnCount
 
     const [dragOffsetPx, setDragOffsetPx] = useState(0)
@@ -181,7 +187,7 @@ export function HabitBlock({
             onPointerCancel={handlePointerUp}
         >
             <div
-                className={`flex h-full w-full items-center justify-between overflow-hidden rounded-lg border border-l-4 ${isCompactLayout ? 'gap-2 px-2 py-0.5' : 'gap-3 px-3 py-1.5'} ${draggable ? 'cursor-grab active:cursor-grabbing' : ''} ${ESTADO_BLOCK_STYLE[estado ?? 'null']} ${flashing ? 'spark-pulse' : ''} ${overdue ? 'importance-alert-pulse' : ''}`}
+                className={`flex h-full w-full items-center overflow-hidden rounded-lg border border-l-4 ${isMicroLayout ? '' : 'justify-between'} ${isCompactLayout ? 'gap-2 px-2 py-0.5' : 'gap-3 px-3 py-1.5'} ${draggable ? 'cursor-grab active:cursor-grabbing' : ''} ${ESTADO_BLOCK_STYLE[estado ?? 'null']} ${flashing ? 'spark-pulse' : ''} ${overdue ? 'importance-alert-pulse' : ''}`}
                 style={
                     {
                         ...(habit.color ? { borderLeftColor: habit.color } : undefined),
@@ -193,29 +199,46 @@ export function HabitBlock({
                     } as CSSProperties
                 }
             >
-                {isCompactLayout ? (
-                    // Una sola fila: no entra el nombre en su propia línea + hora/duración debajo +
-                    // botones de 36px sin quedar apretado — ver COMPACT_LAYOUT_THRESHOLD_PX arriba.
-                    <div className='flex min-w-0 flex-1 items-baseline gap-1.5'>
-                        <span className='truncate text-[12px] font-semibold'>{habit.nombre}</span>
-                        <span className='shrink-0 truncate font-mono text-[9px] opacity-70'>{hora}</span>
-                    </div>
+                {isMicroLayout ? (
+                    // Ni los botones de 24px del nivel compacto entran acá — todo el bloque cicla el
+                    // estado al click (mismo patrón que la variante `compact` de Semana), sin
+                    // EstadoToggle, para que el alto pueda ser el real sin inflar nada.
+                    <button
+                        type='button'
+                        onClick={() => onChange?.(cycleEstado(estado))}
+                        disabled={!onChange}
+                        className='w-full min-w-0 truncate text-left text-[11px] font-semibold disabled:cursor-default'
+                    >
+                        {habit.nombre}
+                        <span className='ml-1.5 font-mono text-[9px] font-normal opacity-70'>{hora}</span>
+                    </button>
                 ) : (
-                    <div className='flex min-w-0 flex-col gap-0.5'>
-                        <div className='flex min-w-0 items-center gap-1.5'>
-                            <span className='truncate text-[13px] font-semibold'>{habit.nombre}</span>
-                            <ImportanciaLabel importancia={habit.importancia} />
-                            {estado === 'cumplido' && <CumplidoBadge />}
+                    <>
+                        {isCompactLayout ? (
+                            // Una sola fila: no entra el nombre en su línea + hora/duración debajo +
+                            // botones de 36px sin quedar apretado — ver NORMAL_THRESHOLD_PX arriba.
+                            <div className='flex min-w-0 flex-1 items-baseline gap-1.5'>
+                                <span className='truncate text-[12px] font-semibold'>{habit.nombre}</span>
+                                <span className='shrink-0 truncate font-mono text-[9px] opacity-70'>{hora}</span>
+                            </div>
+                        ) : (
+                            <div className='flex min-w-0 flex-col gap-0.5'>
+                                <div className='flex min-w-0 items-center gap-1.5'>
+                                    <span className='truncate text-[13px] font-semibold'>{habit.nombre}</span>
+                                    <ImportanciaLabel importancia={habit.importancia} />
+                                    {estado === 'cumplido' && <CumplidoBadge />}
+                                </div>
+                                <span className='truncate font-mono text-[10px] opacity-80'>
+                                    {hora}
+                                    {duracionMinutos ? ` · ${duracionMinutos} min` : ''}
+                                </span>
+                            </div>
+                        )}
+                        <div className='shrink-0'>
+                            <EstadoToggle value={estado} onChange={onChange ?? (() => {})} dense={isCompactLayout} />
                         </div>
-                        <span className='truncate font-mono text-[10px] opacity-80'>
-                            {hora}
-                            {duracionMinutos ? ` · ${duracionMinutos} min` : ''}
-                        </span>
-                    </div>
+                    </>
                 )}
-                <div className='shrink-0'>
-                    <EstadoToggle value={estado} onChange={onChange ?? (() => {})} dense={isCompactLayout} />
-                </div>
             </div>
         </div>
     )
