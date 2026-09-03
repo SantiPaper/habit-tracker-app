@@ -63,6 +63,28 @@ async function refreshSession(current: Session): Promise<Session | null> {
 }
 
 /**
+ * Candado compartido para deduplicar refrescos en paralelo — desde que todo el mundo pega contra
+ * el server (hábitos, eventos, proyectos, logs, amigos, perfil...), abrir la app dispara muchas
+ * llamadas a la vez. Si el access token venció justo ahí, CADA una veía el 401 y llamaba a
+ * `refreshSession` por su cuenta — la primera rotaba el refresh token bien, pero las siguientes
+ * reusaban el token viejo ya gastado, y el server (con detección de reuso) lo tomaba como un
+ * posible robo de sesión y revocaba todo, cerrando la sesión real del usuario (bug reportado en
+ * vivo: "todo el tiempo entro y salgo... se me sale la cuenta"). Ahora todas las llamadas que
+ * lleguen mientras hay un refresh en curso esperan ESE MISMO resultado en vez de disparar uno cada
+ * una — solo hay un POST a /auth/refresh por vez, sin importar cuántos requests lo dispararon.
+ */
+let refreshInFlight: Promise<Session | null> | null = null
+
+function refreshSessionDeduped(current: Session): Promise<Session | null> {
+    if (!refreshInFlight) {
+        refreshInFlight = refreshSession(current).finally(() => {
+            refreshInFlight = null
+        })
+    }
+    return refreshInFlight
+}
+
+/**
  * Cliente HTTP central hacia `habit-tracker-server` — usa el `fetch` de `@tauri-apps/plugin-http`
  * (corre del lado de Rust), no el `fetch` global del navegador: un WebView de Tauri le aplica CORS
  * del lado del browser al `fetch` normal, el plugin lo evita de raíz. Agrega el access token
@@ -90,7 +112,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 
     if (res.status === 401 && session) {
         try {
-            const refreshed = await refreshSession(session)
+            const refreshed = await refreshSessionDeduped(session)
             if (refreshed) res = await send(refreshed.accessToken)
             // Si `refreshed` es null (red caída, Render despertando, etc.) no tocamos la sesión —
             // se reintenta solo en el próximo request. La request actual sigue devolviendo el 401
