@@ -8,9 +8,12 @@ import type { Session } from '@/modules/account/types/account.types'
 /**
  * A propósito NO es un setting editable por el usuario: todos los amigos necesitan apuntar al
  * mismo servidor para poder verse entre sí, así que es una decisión de build, no de cada
- * instalación. Actualizar acá cuando se defina el hosting real.
+ * instalación. `VITE_API_BASE_URL` (en `.env.development`) pisa esto en `tauri dev` — así el
+ * entorno de desarrollo pega contra el server local (Postgres de `docker-compose.yml`) en vez de
+ * producción, sin poder afectar nunca los datos/amigos reales. Los builds de release (`tauri
+ * build`, lo que corre CI) no leen `.env.development`, así que siempre terminan con este valor.
  */
-export const API_BASE_URL = 'https://habit-tracker-server-um59.onrender.com/api'
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'https://habit-tracker-server-um59.onrender.com/api'
 
 export class ApiError extends Error {
     constructor(
@@ -23,7 +26,7 @@ export class ApiError extends Error {
 }
 
 interface RequestOptions {
-    method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
+    method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
     body?: unknown
     query?: Record<string, string>
 }

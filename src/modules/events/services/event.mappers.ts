@@ -1,16 +1,14 @@
-import type { Selectable } from 'kysely'
-
 import type { Event } from '../types/event.types'
 
-import type { EventTable } from '@/core/db/schema'
+import type { ApiEvent } from './event-api.service'
 
-export function toDomainEvent(row: Selectable<EventTable>): Event {
+export function toDomainEvent(row: ApiEvent): Event {
     return {
         id: row.id,
         nombre: row.nombre,
         fecha: row.fecha,
         notas: row.notas,
-        createdAt: row.created_at,
-        updatedAt: row.updated_at
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt
     }
 }

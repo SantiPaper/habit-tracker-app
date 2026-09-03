@@ -1,3 +1,4 @@
+use tauri::Manager;
 use tauri_plugin_sql::{Migration, MigrationKind};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -83,6 +84,18 @@ pub fn run() {
         },
     ];
 
+    // Archivo separado en debug builds (`tauri dev`) — mismo `identifier` de app, así que sin esto
+    // la ventana de testeo comparte el `habit-tracker.db` real con la app instalada (incluida la
+    // sesión guardada: iniciar sesión con una cuenta de test ahí pisaría la sesión de producción
+    // la próxima vez que se abriera la app real). Un nombre de archivo distinto alcanza — ambos
+    // procesos siguen leyendo del mismo directorio de datos de la app, pero de archivos que nunca
+    // se tocan entre sí.
+    let db_filename = if cfg!(debug_assertions) {
+        "sqlite:habit-tracker-dev.db"
+    } else {
+        "sqlite:habit-tracker.db"
+    };
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
@@ -91,9 +104,20 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .plugin(
             tauri_plugin_sql::Builder::default()
-                .add_migrations("sqlite:habit-tracker.db", migrations)
+                .add_migrations(db_filename, migrations)
                 .build(),
         )
+        // Título distinto en `tauri dev` — así la ventana de testeo (contra el server local, ver
+        // .env.development) nunca se confunde con la app instalada de verdad, que puede estar
+        // abierta al mismo tiempo con datos reales.
+        .setup(|app| {
+            if cfg!(debug_assertions) {
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.set_title("Habit Tracker — TESTEO");
+                }
+            }
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

@@ -55,7 +55,13 @@ export function TimeGridShell({ columns }: TimeGridShellProps) {
                     <div className='shrink-0' style={{ width: GUTTER_WIDTH_PX }}>
                         {HOUR_MARKS.map(mark => (
                             <div key={mark.hour} className='relative' style={{ height: HOUR_HEIGHT_PX }}>
-                                <span className='text-text absolute -top-2 right-2.5 font-mono text-[13px] font-semibold'>
+                                {/* `top-0 -translate-y-1/2` centra el número EXACTO sobre su línea de grilla
+                                    (el borde superior de esta celda) — antes era un offset fijo (-8px) que no
+                                    coincidía con la matemática real de posición de los bloques
+                                    (`computeBlockGeometry`), así que un hábito a las 13:30 se veía corrido
+                                    respecto al "13:00" de al lado aunque estuviera bien ubicado contra la
+                                    línea real (reportado por el usuario: "se ve descoordinada la grilla"). */}
+                                <span className='text-text absolute top-0 right-2.5 -translate-y-1/2 font-mono text-[13px] font-semibold'>
                                     {mark.label}
                                 </span>
                             </div>

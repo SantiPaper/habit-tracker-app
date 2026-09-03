@@ -4,9 +4,11 @@ import { useRef, useState } from 'react'
 import {
     GRID_END_HOUR,
     GRID_START_HOUR,
+    HOUR_HEIGHT_PX,
     MIN_BLOCK_HEIGHT_PX_COMPACT,
     MIN_BLOCK_HEIGHT_PX_FULL,
     minutesToHora,
+    minutesToPx,
     parseHoraToMinutes,
     type BlockGeometry
 } from '../lib/time-grid'
@@ -30,6 +32,8 @@ interface HabitBlockProps {
     hora: string
     duracionMinutos: number | null
     geometry: BlockGeometry
+    /** Tope de alto (px) para no invadir al próximo bloque de la misma columna — ver `maxHeightsByNextInColumn`. `undefined` = sin tope (último de su columna). */
+    maxHeightPx?: number
     column: number
     columnCount: number
     variant: 'full' | 'compact'
@@ -46,6 +50,7 @@ interface HabitBlockProps {
 }
 
 const DRAG_SNAP_MIN = 15
+const DRAG_SNAP_PX = minutesToPx(DRAG_SNAP_MIN)
 /** Un arrastre más chico que esto se descarta como "no fue intencional" (click tembloroso). */
 const DRAG_THRESHOLD_PX = 8
 
@@ -56,6 +61,7 @@ export function HabitBlock({
     hora,
     duracionMinutos,
     geometry,
+    maxHeightPx,
     column,
     columnCount,
     variant,
@@ -70,7 +76,22 @@ export function HabitBlock({
     const { data: importanciaColors } = useImportanciaColors()
     const overdue = isToday === true && isImportanceOverdue(habit, estado, now, blocksToday ?? [])
     const minHeight = variant === 'full' ? MIN_BLOCK_HEIGHT_PX_FULL : MIN_BLOCK_HEIGHT_PX_COMPACT
-    const height = Math.max(geometry.heightPx, minHeight)
+    // El piso de legibilidad (minHeight) puede querer más espacio del que hay libre hasta el
+    // próximo bloque — maxHeightPx (si vino) manda por encima de eso, nunca al revés: nunca corta
+    // por debajo del alto real (geometry.heightPx), maxHeightsByNextInColumn ya lo garantiza.
+    const height = Math.min(Math.max(geometry.heightPx, minHeight), maxHeightPx ?? Infinity)
+    // Tres niveles según cuánto alto real hay, no solo dos — con MIN_BLOCK_HEIGHT_PX_FULL calibrado
+    // a 15min exactos (20px), ni los botones de 24px del nivel "compacto" entran ahí. Por debajo de
+    // NORMAL_THRESHOLD_PX no entra el layout normal (nombre en su línea + botones de 36px) sin
+    // quedar apretado; por debajo de COMPACT_THRESHOLD_PX tampoco entran los botones chicos — ahí
+    // se saca el EstadoToggle del todo y el bloque ENTERO pasa a ser clickeable para ciclar el
+    // estado (mismo patrón que ya usa la variante `compact` de Semana), así el tamaño puede ser el
+    // real sin inflar nada (reportado por el usuario: un hábito de 15min se veía "más grande de lo
+    // que debería", y dos hábitos a 15min de diferencia se separaban en columnas sin necesitarlo).
+    const NORMAL_THRESHOLD_PX = 48
+    const COMPACT_THRESHOLD_PX = 30
+    const isCompactLayout = variant === 'full' && height < NORMAL_THRESHOLD_PX
+    const isMicroLayout = variant === 'full' && height < COMPACT_THRESHOLD_PX
     const widthPercent = 100 / columnCount
 
     const [dragOffsetPx, setDragOffsetPx] = useState(0)
@@ -89,7 +110,7 @@ export function HabitBlock({
     function handlePointerMove(e: ReactPointerEvent<HTMLDivElement>) {
         if (dragStartYRef.current === null) return
         const rawDelta = e.clientY - dragStartYRef.current
-        setDragOffsetPx(Math.round(rawDelta / DRAG_SNAP_MIN) * DRAG_SNAP_MIN)
+        setDragOffsetPx(Math.round(rawDelta / DRAG_SNAP_PX) * DRAG_SNAP_PX)
     }
 
     function handlePointerUp() {
@@ -101,10 +122,13 @@ export function HabitBlock({
 
         if (Math.abs(finalOffset) < DRAG_THRESHOLD_PX || !onDragReschedule) return
 
-        // 1px de la grilla = 1 minuto (ver time-grid.ts) — el delta de arrastre ya viene snappeado a 15.
+        // Convierte el delta de arrastre (px, ya snappeado a un múltiplo de DRAG_SNAP_PX) de vuelta
+        // a minutos vía HOUR_HEIGHT_PX — antes asumía 1px = 1min, dejó de ser cierto cuando la
+        // grilla se agrandó (HOUR_HEIGHT_PX > 60) para darle más aire a los hábitos cortos.
+        const finalOffsetMin = Math.round((finalOffset / HOUR_HEIGHT_PX) * 60)
         const minMinutes = GRID_START_HOUR * 60
         const maxMinutes = GRID_END_HOUR * 60 - (duracionMinutos ?? DRAG_SNAP_MIN)
-        const newStartMin = Math.min(maxMinutes, Math.max(minMinutes, parseHoraToMinutes(hora) + finalOffset))
+        const newStartMin = Math.min(maxMinutes, Math.max(minMinutes, parseHoraToMinutes(hora) + finalOffsetMin))
         onDragReschedule(minutesToHora(newStartMin))
     }
 
@@ -163,7 +187,7 @@ export function HabitBlock({
             onPointerCancel={handlePointerUp}
         >
             <div
-                className={`flex h-full w-full items-center justify-between gap-3 overflow-hidden rounded-lg border border-l-4 px-3 py-1.5 ${draggable ? 'cursor-grab active:cursor-grabbing' : ''} ${ESTADO_BLOCK_STYLE[estado ?? 'null']} ${flashing ? 'spark-pulse' : ''} ${overdue ? 'importance-alert-pulse' : ''}`}
+                className={`flex h-full w-full items-center overflow-hidden rounded-lg border border-l-4 ${isMicroLayout ? '' : 'justify-between'} ${isCompactLayout ? 'gap-2 px-2 py-0.5' : 'gap-3 px-3 py-1.5'} ${draggable ? 'cursor-grab active:cursor-grabbing' : ''} ${ESTADO_BLOCK_STYLE[estado ?? 'null']} ${flashing ? 'spark-pulse' : ''} ${overdue ? 'importance-alert-pulse' : ''}`}
                 style={
                     {
                         ...(habit.color ? { borderLeftColor: habit.color } : undefined),
@@ -175,20 +199,46 @@ export function HabitBlock({
                     } as CSSProperties
                 }
             >
-                <div className='flex min-w-0 flex-col gap-0.5'>
-                    <div className='flex min-w-0 items-center gap-1.5'>
-                        <span className='truncate text-[13px] font-semibold'>{habit.nombre}</span>
-                        <ImportanciaLabel importancia={habit.importancia} />
-                        {estado === 'cumplido' && <CumplidoBadge />}
-                    </div>
-                    <span className='truncate font-mono text-[10px] opacity-80'>
-                        {hora}
-                        {duracionMinutos ? ` · ${duracionMinutos} min` : ''}
-                    </span>
-                </div>
-                <div className='shrink-0'>
-                    <EstadoToggle value={estado} onChange={onChange ?? (() => {})} />
-                </div>
+                {isMicroLayout ? (
+                    // Ni los botones de 24px del nivel compacto entran acá — todo el bloque cicla el
+                    // estado al click (mismo patrón que la variante `compact` de Semana), sin
+                    // EstadoToggle, para que el alto pueda ser el real sin inflar nada.
+                    <button
+                        type='button'
+                        onClick={() => onChange?.(cycleEstado(estado))}
+                        disabled={!onChange}
+                        className='w-full min-w-0 truncate text-left text-[11px] font-semibold disabled:cursor-default'
+                    >
+                        {habit.nombre}
+                        <span className='ml-1.5 font-mono text-[9px] font-normal opacity-70'>{hora}</span>
+                    </button>
+                ) : (
+                    <>
+                        {isCompactLayout ? (
+                            // Una sola fila: no entra el nombre en su línea + hora/duración debajo +
+                            // botones de 36px sin quedar apretado — ver NORMAL_THRESHOLD_PX arriba.
+                            <div className='flex min-w-0 flex-1 items-baseline gap-1.5'>
+                                <span className='truncate text-[12px] font-semibold'>{habit.nombre}</span>
+                                <span className='shrink-0 truncate font-mono text-[9px] opacity-70'>{hora}</span>
+                            </div>
+                        ) : (
+                            <div className='flex min-w-0 flex-col gap-0.5'>
+                                <div className='flex min-w-0 items-center gap-1.5'>
+                                    <span className='truncate text-[13px] font-semibold'>{habit.nombre}</span>
+                                    <ImportanciaLabel importancia={habit.importancia} />
+                                    {estado === 'cumplido' && <CumplidoBadge />}
+                                </div>
+                                <span className='truncate font-mono text-[10px] opacity-80'>
+                                    {hora}
+                                    {duracionMinutos ? ` · ${duracionMinutos} min` : ''}
+                                </span>
+                            </div>
+                        )}
+                        <div className='shrink-0'>
+                            <EstadoToggle value={estado} onChange={onChange ?? (() => {})} dense={isCompactLayout} />
+                        </div>
+                    </>
+                )}
             </div>
         </div>
     )

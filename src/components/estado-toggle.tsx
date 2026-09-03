@@ -68,11 +68,17 @@ interface EstadoToggleProps {
     value: EstadoLog | null
     /** `null` = volver a "sin marcar". */
     onChange: (estado: EstadoLog | null) => void
+    /** Botones chicos (24px en vez de 36px) — para bloques de Agenda demasiado bajos como para
+     * pagar el tamaño normal (ver `HabitBlock`, hábitos de pocos minutos). */
+    dense?: boolean
 }
 
-export function EstadoToggle({ value, onChange }: EstadoToggleProps) {
+export function EstadoToggle({ value, onChange, dense }: EstadoToggleProps) {
+    const sizeClass = dense ? 'h-6 w-6' : 'h-9 w-9'
+    const gapClass = dense ? 'gap-1' : 'gap-1.5'
+
     return (
-        <div className='flex gap-1.5'>
+        <div className={`flex ${gapClass}`}>
             {OPTIONS.map(option => (
                 <button
                     key={option.estado}
@@ -80,7 +86,7 @@ export function EstadoToggle({ value, onChange }: EstadoToggleProps) {
                     aria-label={option.label}
                     aria-pressed={value === option.estado}
                     onClick={() => onChange(option.estado)}
-                    className={`flex h-9 w-9 items-center justify-center rounded-full ${
+                    className={`flex ${sizeClass} items-center justify-center rounded-full ${
                         value === option.estado ? option.activeClass : 'border-border text-text-muted border'
                     }`}
                 >
@@ -93,7 +99,7 @@ export function EstadoToggle({ value, onChange }: EstadoToggleProps) {
                 title='Volver a sin marcar'
                 disabled={value === null}
                 onClick={() => onChange(null)}
-                className='border-border text-text-muted flex h-9 w-9 items-center justify-center rounded-full border disabled:opacity-30'
+                className={`border-border text-text-muted flex ${sizeClass} items-center justify-center rounded-full border disabled:opacity-30`}
             >
                 <ResetIcon />
             </button>

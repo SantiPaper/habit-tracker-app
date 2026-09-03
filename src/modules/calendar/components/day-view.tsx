@@ -16,8 +16,9 @@ import { useNow } from '@/lib/hooks/use-now'
 import { useMonthData } from '@/modules/calendar/hooks/use-month-data'
 import {
     computeBlockGeometry,
-    DEFAULT_VISUAL_DURATION_MIN,
     layoutOverlaps,
+    maxHeightsByNextInColumn,
+    MIN_BLOCK_DURATION_MIN_FULL,
     MIN_BLOCK_HEIGHT_PX_FULL,
     parseHoraToMinutes
 } from '@/modules/calendar/lib/time-grid'
@@ -148,15 +149,12 @@ export function DayView({ initialDate, viewFilter = 'todos' }: DayViewProps) {
         itemsWithBlocks.flatMap(({ item, blocks }) =>
             blocks.map(block => {
                 const startMin = parseHoraToMinutes(block.hora)
-                // El alto mínimo del bloque (ver MIN_BLOCK_HEIGHT_PX_FULL) puede ser más largo que
-                // la duración real de un hábito corto — si no se refleja acá, dos hábitos cortos y
-                // consecutivos que no se solapan en su horario real terminan solapados en pantalla
-                // porque el alto inflado de uno invade el espacio del siguiente.
-                const visualDuration = Math.max(
-                    block.duracionMinutos ?? DEFAULT_VISUAL_DURATION_MIN,
-                    MIN_BLOCK_HEIGHT_PX_FULL
-                )
-                const endMin = startMin + visualDuration
+                // Para decidir columnas (layoutOverlaps) se usa la duración real, PERO nunca menos
+                // que MIN_BLOCK_DURATION_MIN_FULL — así dos hábitos cortos muy pegados van a
+                // columnas separadas en vez de aplastarse por debajo de su propio mínimo legible.
+                // El renderizado (computeBlockGeometry, unas líneas más abajo al armar `laidOut`)
+                // sigue usando la duración real sin inflar — esto solo afecta el layout de columnas.
+                const endMin = startMin + Math.max(block.duracionMinutos ?? 0, MIN_BLOCK_DURATION_MIN_FULL)
                 return {
                     item,
                     hora: block.hora,
@@ -169,6 +167,18 @@ export function DayView({ initialDate, viewFilter = 'todos' }: DayViewProps) {
             })
         )
     )
+    const maxHeights = maxHeightsByNextInColumn(laidOut)
+
+    // Mismo cálculo de alto que hace HabitBlock (geometría real, piso de legibilidad, tope del
+    // próximo bloque) — para que el hover de "+ Crear hábito" sepa exactamente qué píxeles están
+    // ocupados de verdad y nunca se asome cerca de un bloque corto (reportado por el usuario:
+    // el aviso aparecía pegado a un bloque de 15 min con un piso de legibilidad más alto que su
+    // duración real, en una franja que el hover -snapeado a 30min, más grueso- no reconocía como ocupada).
+    const occupiedRanges = laidOut.map(({ item: slot }, index) => {
+        const geometry = computeBlockGeometry(slot.hora, slot.duracionMinutos)
+        const height = Math.min(Math.max(geometry.heightPx, MIN_BLOCK_HEIGHT_PX_FULL), maxHeights[index] ?? Infinity)
+        return { top: geometry.topPx, bottom: geometry.topPx + height }
+    })
 
     return (
         <div className='flex items-start gap-8'>
@@ -246,7 +256,10 @@ export function DayView({ initialDate, viewFilter = 'todos' }: DayViewProps) {
                                 isToday: dateKey === todayKey,
                                 children: (
                                     <>
-                                        <EmptySlotHoverLayer onCreateAt={setQuickCreateHora} />
+                                        <EmptySlotHoverLayer
+                                            occupiedRanges={occupiedRanges}
+                                            onCreateAt={setQuickCreateHora}
+                                        />
                                         {laidOut.map(({ item: slot, column, columnCount }, index) => (
                                             <HabitBlock
                                                 key={`${slot.item.habit.id}-${slot.hora}-${index}`}
@@ -256,6 +269,7 @@ export function DayView({ initialDate, viewFilter = 'todos' }: DayViewProps) {
                                                 duracionMinutos={slot.duracionMinutos}
                                                 blocksToday={slot.blocksToday}
                                                 geometry={computeBlockGeometry(slot.hora, slot.duracionMinutos)}
+                                                maxHeightPx={maxHeights[index]}
                                                 column={column}
                                                 columnCount={columnCount}
                                                 variant='full'

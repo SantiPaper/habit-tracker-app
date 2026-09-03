@@ -11,6 +11,11 @@ const UPDATE_CHECK_INTERVAL_MS = 3 * 60 * 60 * 1000
  * abierta — mismo esqueleto de `setInterval` que `use-profile-sync.ts`/`use-habit-reminders.ts`,
  * mucho más espaciado porque no tiene sentido pegarle a GitHub cada 60s por esto. Silencioso ante
  * cualquier falla (sin conexión, GitHub caído) — nunca rompe el uso normal de la app.
+ *
+ * En `tauri dev` (`import.meta.env.DEV`) no corre nada — la ventana de testeo corre el código más
+ * nuevo por definición, avisar "hay una actualización" ahí es ruido/confuso sin sentido, y encima
+ * dispararía un `downloadAndInstall()` real contra el último release de GitHub si se tocara el
+ * botón (nada que ver con lo que se está probando).
  */
 export function useAppUpdate() {
     const [available, setAvailable] = useState(false)
@@ -20,6 +25,7 @@ export function useAppUpdate() {
     const updateRef = useRef<Update | null>(null)
 
     useEffect(() => {
+        if (import.meta.env.DEV) return
         let cancelled = false
 
         async function runCheck() {

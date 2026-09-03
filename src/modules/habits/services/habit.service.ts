@@ -1,49 +1,54 @@
-import { sql, type Selectable } from 'kysely'
-
 import type { CreateHabitInput } from '../schemas/habit.schema'
 import type { Habit, HabitTipo } from '../types/habit.types'
 
-import { replaceScheduleBlocksForHabit, listAllScheduleBlocks } from './habit-schedule-block.service'
+import {
+    apiCreateHabit,
+    apiListHabits,
+    apiReplaceHabit,
+    apiUpdateHabit,
+    type CreateHabitBody
+} from './habit-api.service'
 import { toDomainHabit } from './habit.mappers'
 
-import { db } from '@/core/db/client'
-import type { HabitScheduleBlockTable } from '@/core/db/schema'
 import { toDateKey } from '@/lib/date/period'
 import { useSessionStore } from '@/modules/account/store/session-store'
 
 /**
- * Los hábitos son exclusivos de la cuenta — sin sesión no hay `userId` para filtrar, así que se
- * lee acá directo del store (no por prop/parámetro: `habit.service.ts` lo llaman decenas de hooks
- * en toda la app, pasar la sesión a cada uno sería un cambio mucho más invasivo para el mismo
- * resultado). Mismo patrón que ya usa `api-client.ts`/`friend-activity-tick.ts` para leer la
- * sesión fuera de un componente React.
+ * Etapa 2 de la migración a la nube: este módulo dejó de leer/escribir SQLite local — todo pasa
+ * por `habit-api.service.ts` contra el server (ver habit-tracker-server, modelo `Habit`). El
+ * contrato público (nombres, firmas, el tipo de dominio `Habit`) no cambió — los ~15 hooks que
+ * llaman estas funciones no se tocaron.
  */
-function currentOwnerId(): string | null {
-    return useSessionStore.getState().session?.userId ?? null
+function requireSession(): void {
+    if (!useSessionStore.getState().session) throw new Error('Necesitás una cuenta para crear/editar hábitos')
 }
 
-function groupBlocksByHabitId(
-    blocks: Selectable<HabitScheduleBlockTable>[]
-): Map<string, Selectable<HabitScheduleBlockTable>[]> {
-    const map = new Map<string, Selectable<HabitScheduleBlockTable>[]>()
-    for (const block of blocks) {
-        const group = map.get(block.habit_id)
-        if (group) group.push(block)
-        else map.set(block.habit_id, [block])
+function toCreateBody(input: CreateHabitInput, fechaInicio: string): CreateHabitBody {
+    return {
+        nombre: input.nombre,
+        tipo: input.tipo,
+        diasSemana: input.tipo === 'diario_recurrente' ? JSON.stringify(input.diasSemana) : null,
+        fecha: input.tipo === 'diario_unico' ? input.fecha : null,
+        hora: input.tipo === 'diario_recurrente' ? null : (input.hora ?? null),
+        duracionMinutos: input.tipo === 'diario_recurrente' ? null : (input.duracionMinutos ?? null),
+        color: input.color ?? null,
+        importancia: input.importancia,
+        fechaInicio,
+        scheduleBlocks:
+            input.tipo === 'diario_recurrente'
+                ? input.scheduleBlocks.map(b => ({
+                      diasSemana: JSON.stringify(b.diasSemana),
+                      hora: b.hora,
+                      duracionMinutos: b.duracionMinutos
+                  }))
+                : undefined
     }
-    return map
 }
 
 export async function listHabits(): Promise<Habit[]> {
-    const ownerId = currentOwnerId()
-    if (!ownerId) return []
-
-    const [rows, blocks] = await Promise.all([
-        db.selectFrom('habit').selectAll().where('owner_user_id', '=', ownerId).orderBy('created_at', 'asc').execute(),
-        listAllScheduleBlocks()
-    ])
-    const blocksByHabitId = groupBlocksByHabitId(blocks)
-    return rows.map(row => toDomainHabit(row, blocksByHabitId.get(row.id) ?? []))
+    if (!useSessionStore.getState().session) return []
+    const rows = await apiListHabits()
+    return rows.sort((a, b) => a.createdAt.localeCompare(b.createdAt)).map(toDomainHabit)
 }
 
 export interface PastUnicoHabit {
@@ -54,84 +59,36 @@ export interface PastUnicoHabit {
 
 /**
  * Nombres de hábitos `diario_unico` ya creados antes (deduplicados, el más reciente de cada
- * nombre) — para poder "repetir" uno en otra fecha sin volver a tipearlo de cero y sin que
- * variaciones de tipeo (ej. "Entrenar movilidad" vs "Entrenar hoy movilidad") ensucien el
- * historial con nombres que en realidad son el mismo hábito para el usuario.
+ * nombre) — antes era una query dedicada a SQLite, ahora se filtra en JS a partir de la lista
+ * completa (el server no expone un endpoint aparte para esto, no vale la pena uno solo para esta
+ * pantalla — la cantidad de hábitos de una cuenta es chica).
  */
 export async function listPastUnicoHabitNames(): Promise<PastUnicoHabit[]> {
-    const ownerId = currentOwnerId()
-    if (!ownerId) return []
-
-    const rows = await db
-        .selectFrom('habit')
-        .select(['nombre', 'color', 'importancia'])
-        .where('tipo', '=', 'diario_unico')
-        .where('owner_user_id', '=', ownerId)
-        .orderBy('created_at', 'desc')
-        .execute()
+    const habits = await listHabits()
+    const unicos = habits
+        .filter(h => h.tipo === 'diario_unico')
+        .sort((a, b) => b.fechaInicio.localeCompare(a.fechaInicio))
 
     const seen = new Set<string>()
     const result: PastUnicoHabit[] = []
-    for (const row of rows) {
-        if (seen.has(row.nombre)) continue
-        seen.add(row.nombre)
-        result.push({ nombre: row.nombre, color: row.color, importancia: row.importancia })
+    for (const habit of unicos) {
+        if (seen.has(habit.nombre)) continue
+        seen.add(habit.nombre)
+        result.push({ nombre: habit.nombre, color: habit.color, importancia: habit.importancia })
     }
     return result
 }
 
 export async function listActiveHabitsByTipo(tipo: HabitTipo): Promise<Habit[]> {
-    const ownerId = currentOwnerId()
-    if (!ownerId) return []
-
-    const [rows, blocks] = await Promise.all([
-        db
-            .selectFrom('habit')
-            .selectAll()
-            .where('tipo', '=', tipo)
-            .where('activo', '=', 1)
-            .where('owner_user_id', '=', ownerId)
-            .orderBy('created_at', 'asc')
-            .execute(),
-        tipo === 'diario_recurrente' ? listAllScheduleBlocks() : Promise.resolve([])
-    ])
-    const blocksByHabitId = groupBlocksByHabitId(blocks)
-    return rows.map(row => toDomainHabit(row, blocksByHabitId.get(row.id) ?? []))
+    const habits = await listHabits()
+    return habits.filter(h => h.tipo === tipo && h.activo)
 }
 
 export async function createHabit(input: CreateHabitInput): Promise<Habit> {
-    const ownerId = currentOwnerId()
-    if (!ownerId) throw new Error('Necesitás una cuenta para crear hábitos')
-
-    const id = crypto.randomUUID()
+    requireSession()
     const today = toDateKey(new Date())
-
-    return db.transaction().execute(async trx => {
-        const row = await trx
-            .insertInto('habit')
-            .values({
-                id,
-                nombre: input.nombre,
-                tipo: input.tipo,
-                dias_semana: input.tipo === 'diario_recurrente' ? JSON.stringify(input.diasSemana) : null,
-                fecha: input.tipo === 'diario_unico' ? input.fecha : null,
-                hora: input.tipo === 'diario_recurrente' ? null : (input.hora ?? null),
-                duracion_minutos: input.tipo === 'diario_recurrente' ? null : (input.duracionMinutos ?? null),
-                color: input.color ?? null,
-                importancia: input.importancia,
-                fecha_inicio: today,
-                fecha_fin: null,
-                activo: 1,
-                owner_user_id: ownerId
-            })
-            .returningAll()
-            .executeTakeFirstOrThrow()
-
-        const blocks =
-            input.tipo === 'diario_recurrente' ? await replaceScheduleBlocksForHabit(id, input.scheduleBlocks, trx) : []
-
-        return toDomainHabit(row, blocks)
-    })
+    const row = await apiCreateHabit(toCreateBody(input, today))
+    return toDomainHabit(row)
 }
 
 export interface UpdateHabitDetailsInput {
@@ -144,43 +101,21 @@ export interface UpdateHabitDetailsInput {
 }
 
 export async function updateHabitDetails(habitId: string, changes: UpdateHabitDetailsInput): Promise<Habit> {
-    const ownerId = currentOwnerId()
-    if (!ownerId) throw new Error('Necesitás una cuenta para editar hábitos')
-
-    const row = await db
-        .updateTable('habit')
-        .set({
-            nombre: changes.nombre,
-            fecha: changes.fecha ?? null,
-            hora: changes.hora ?? null,
-            duracion_minutos: changes.duracionMinutos ?? null,
-            color: changes.color ?? null,
-            ...(changes.importancia ? { importancia: changes.importancia } : {}),
-            // El default de la columna solo aplica al INSERT — sin esto, `updated_at` quedaba
-            // congelado en la fecha de creación para siempre, sin importar cuántas ediciones
-            // tuviera el hábito después (bug real, encontrado armando la sync entre dispositivos).
-            updated_at: sql`datetime('now')`
-        })
-        .where('id', '=', habitId)
-        .where('owner_user_id', '=', ownerId)
-        .returningAll()
-        .executeTakeFirstOrThrow()
-
-    // `scheduleBlocks` no se toca acá — para diario_recurrente el caller (`editHabit`) sincroniza
-    // los bloques por separado con `replaceScheduleBlocksForHabit` y arma el resultado final.
-    return toDomainHabit(row, [])
+    requireSession()
+    const row = await apiUpdateHabit(habitId, {
+        nombre: changes.nombre,
+        fecha: changes.fecha ?? null,
+        hora: changes.hora ?? null,
+        duracionMinutos: changes.duracionMinutos ?? null,
+        color: changes.color ?? null,
+        ...(changes.importancia ? { importancia: changes.importancia } : {})
+    })
+    return toDomainHabit(row)
 }
 
 export async function retireHabit(habitId: string, fechaFin: string): Promise<void> {
-    const ownerId = currentOwnerId()
-    if (!ownerId) throw new Error('Necesitás una cuenta para editar hábitos')
-
-    await db
-        .updateTable('habit')
-        .set({ fecha_fin: fechaFin, activo: 0, updated_at: sql`datetime('now')` })
-        .where('id', '=', habitId)
-        .where('owner_user_id', '=', ownerId)
-        .execute()
+    requireSession()
+    await apiUpdateHabit(habitId, { fechaFin, activo: false })
 }
 
 export async function replaceHabitSchedule(
@@ -188,45 +123,8 @@ export async function replaceHabitSchedule(
     fechaFin: string,
     newHabit: CreateHabitInput
 ): Promise<Habit> {
-    const ownerId = currentOwnerId()
-    if (!ownerId) throw new Error('Necesitás una cuenta para editar hábitos')
-
-    return db.transaction().execute(async trx => {
-        await trx
-            .updateTable('habit')
-            .set({ fecha_fin: fechaFin, activo: 0, updated_at: sql`datetime('now')` })
-            .where('id', '=', oldHabitId)
-            .where('owner_user_id', '=', ownerId)
-            .execute()
-
-        const id = crypto.randomUUID()
-        const today = toDateKey(new Date())
-
-        const row = await trx
-            .insertInto('habit')
-            .values({
-                id,
-                nombre: newHabit.nombre,
-                tipo: newHabit.tipo,
-                dias_semana: newHabit.tipo === 'diario_recurrente' ? JSON.stringify(newHabit.diasSemana) : null,
-                fecha: newHabit.tipo === 'diario_unico' ? newHabit.fecha : null,
-                hora: newHabit.tipo === 'diario_recurrente' ? null : (newHabit.hora ?? null),
-                duracion_minutos: newHabit.tipo === 'diario_recurrente' ? null : (newHabit.duracionMinutos ?? null),
-                color: newHabit.color ?? null,
-                importancia: newHabit.importancia,
-                fecha_inicio: today,
-                fecha_fin: null,
-                activo: 1,
-                owner_user_id: ownerId
-            })
-            .returningAll()
-            .executeTakeFirstOrThrow()
-
-        const blocks =
-            newHabit.tipo === 'diario_recurrente'
-                ? await replaceScheduleBlocksForHabit(id, newHabit.scheduleBlocks, trx)
-                : []
-
-        return toDomainHabit(row, blocks)
-    })
+    requireSession()
+    const today = toDateKey(new Date())
+    const row = await apiReplaceHabit(oldHabitId, fechaFin, toCreateBody(newHabit, today))
+    return toDomainHabit(row)
 }
