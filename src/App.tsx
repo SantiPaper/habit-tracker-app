@@ -10,6 +10,7 @@ import { useStreakFreezeResolver } from '@/modules/achievements/hooks/use-streak
 import { useAlertNotifications } from '@/modules/alerts/hooks/use-alert-notifications'
 import { EventDialog } from '@/modules/events/components/event-dialog'
 import { XpHud } from '@/modules/gamification/components/xp-hud'
+import { useLocalToCloudMigration } from '@/modules/migration/hooks/use-local-to-cloud-migration'
 import { ProjectDialog } from '@/modules/projects/components/project-dialog'
 import { useRealtime } from '@/modules/realtime/hooks/use-realtime'
 import { RemindersBanner } from '@/modules/reminders/components/reminders-banner'
@@ -199,6 +200,7 @@ function App() {
     useAlertNotifications()
     useHabitReminders()
     useHydrateSession()
+    useLocalToCloudMigration()
     useProfileSync()
     useRealtime()
     useStreakFreezeResolver()
